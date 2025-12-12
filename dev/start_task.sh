@@ -249,10 +249,12 @@ Assumptions:
    If not installed, skip this step.
 
 10. Create \`${REVIEW_REQUEST_FILE}\` with PR info to trigger the code-reviewer agent:
-    \`\`\`
-    PR_NUMBER=<number>
-    PR_URL=<url>
-    NOTES=<any special review notes>
+    \`\`\`bash
+    cat > ${REVIEW_REQUEST_FILE} <<EOF
+    PR_NUMBER=<PR_NUMBER>
+    PR_URL=<PR_URL>
+    NOTES=<any special notes for the reviewer>
+    EOF
     \`\`\`
 
 11. **Exit this session** by running \`/exit-session\` so the workflow can proceed to Phase 2 (waiting for code review).
