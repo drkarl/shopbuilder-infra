@@ -6,10 +6,10 @@ This directory contains all Terraform configurations for the ShopBuilder infrast
 
 ```
 terraform/
-├── common/                  # Shared configuration (reference only)
-│   ├── providers.tf         # Provider definitions
-│   ├── variables.tf         # Common variable definitions
-│   └── outputs.tf           # Common output definitions
+├── common/                  # Reference documentation (NOT used by Terraform)
+│   ├── providers.tf         # Provider configuration reference
+│   ├── variables.tf         # Variable definitions reference
+│   └── outputs.tf           # Output definitions reference
 ├── modules/                 # Reusable infrastructure modules
 │   ├── vps/                 # VPS instance management
 │   │   ├── main.tf
@@ -24,6 +24,8 @@ terraform/
     ├── staging/             # Staging environment
     └── prod/                # Production environment
 ```
+
+> **Note:** The `common/` directory contains reference documentation only and is NOT executed by Terraform. Each environment in `environments/` is a standalone Terraform root module with its own provider, variable, and output definitions. The common directory serves as a template/reference to keep environments consistent.
 
 ## Providers
 
