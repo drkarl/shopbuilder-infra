@@ -109,9 +109,10 @@ creation_rules:
    # Edit secrets/production.yaml with actual secret values
    ```
 
-3. Encrypt the file:
+3. Encrypt the file (using temp file for safety):
    ```bash
-   sops -e secrets/production.yaml > secrets/production.enc.yaml
+   sops -e secrets/production.yaml > secrets/production.enc.yaml.tmp && \
+     mv secrets/production.enc.yaml.tmp secrets/production.enc.yaml
    ```
 
 4. Delete the unencrypted file:
@@ -205,10 +206,10 @@ jobs:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
         run: |
           KEY_FILE=$(mktemp)
+          trap 'rm -f "$KEY_FILE"' EXIT
           echo "$SOPS_AGE_KEY" > "$KEY_FILE"
           export SOPS_AGE_KEY_FILE="$KEY_FILE"
           sops -d secrets/production.enc.yaml > .env
-          rm "$KEY_FILE"
 ```
 
 ### Woodpecker CI
@@ -220,10 +221,10 @@ steps:
     secrets: [sops_age_key]
     commands:
       - KEY_FILE=$(mktemp)
+      - trap 'rm -f "$KEY_FILE"' EXIT
       - echo "$SOPS_AGE_KEY" > "$KEY_FILE"
       - export SOPS_AGE_KEY_FILE="$KEY_FILE"
       - sops -d secrets/production.enc.yaml > .env
-      - rm "$KEY_FILE"
 ```
 
 ## Terraform Integration
