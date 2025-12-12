@@ -19,6 +19,21 @@ override.tf.json
 .env.*
 !.env.example
 
+# SOPS/age secrets management
+# Decrypted secrets (never commit)
+.env.decrypted
+*.decrypted.yaml
+*.decrypted.json
+secrets/*.yaml
+secrets/*.json
+!secrets/*.enc.yaml
+!secrets/*.enc.json
+!secrets/*.example
+
+# Age private keys (never commit - store securely offline)
+*.age.key
+keys/
+
 # IDE
 .idea/
 .vscode/

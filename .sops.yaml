@@ -1,0 +1,27 @@
+# SOPS Configuration for ShopBuilder Infrastructure
+# https://github.com/getsops/sops
+
+creation_rules:
+  # Production secrets - encrypted with production age key
+  - path_regex: secrets/production\.enc\.yaml$
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # Replace with actual production public key after generating:
+    # age-keygen -o keys/production.age.key
+    # Get public key: age-keygen -y keys/production.age.key
+
+  # Staging secrets - encrypted with staging age key
+  - path_regex: secrets/staging\.enc\.yaml$
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # Replace with actual staging public key after generating:
+    # age-keygen -o keys/staging.age.key
+    # Get public key: age-keygen -y keys/staging.age.key
+
+  # Development secrets - encrypted with dev age key (optional)
+  - path_regex: secrets/dev\.enc\.yaml$
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # Replace with actual dev public key after generating:
+    # age-keygen -o keys/dev.age.key
+    # Get public key: age-keygen -y keys/dev.age.key
