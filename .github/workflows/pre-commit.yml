@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
       - name: Cache pre-commit
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
