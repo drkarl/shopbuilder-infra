@@ -2,6 +2,43 @@
 
 This document describes how to manage secrets for ShopBuilder infrastructure using [SOPS](https://github.com/getsops/sops) with [age](https://github.com/FiloSottile/age) encryption.
 
+## Quick Start: Pre-commit Hooks
+
+To prevent accidental secret commits, install pre-commit hooks:
+
+```bash
+# Install pre-commit (requires Python 3.8+)
+pip install pre-commit
+
+# Install the hooks
+pre-commit install
+
+# Test the hooks work
+pre-commit run --all-files
+```
+
+The hooks will automatically run on every commit and block commits containing:
+- AWS keys and secrets
+- Stripe API keys
+- GitHub/GitLab tokens
+- Private keys
+- High-entropy strings that look like secrets
+- And many other secret patterns
+
+### Updating the Secrets Baseline
+
+If detect-secrets flags a false positive, you can add it to the baseline:
+
+```bash
+# Audit the current baseline
+detect-secrets audit .secrets.baseline
+
+# Update the baseline (only do this for verified false positives)
+detect-secrets scan --baseline .secrets.baseline
+git add .secrets.baseline
+git commit -m "Update secrets baseline"
+```
+
 ## Overview
 
 - **SOPS** (Secrets OPerationS) - encrypts values in YAML/JSON files while keeping keys readable
