@@ -55,3 +55,7 @@ kubeconfig
 
 # AI workflow files (in worktrees)
 .ai/
+
+# Python virtual environments
+.venv/
+venv/
