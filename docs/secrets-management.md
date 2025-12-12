@@ -7,7 +7,7 @@ This document describes how to manage secrets for ShopBuilder infrastructure usi
 To prevent accidental secret commits, install pre-commit hooks:
 
 ```bash
-# Install pre-commit (requires Python 3.8+)
+# Install pre-commit (requires Python 3.8 or higher; CI uses Python 3.12)
 pip install pre-commit
 
 # Install the hooks
