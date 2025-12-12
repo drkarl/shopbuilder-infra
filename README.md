@@ -31,6 +31,7 @@ This repository contains all infrastructure definitions, deployment scripts, and
 - kubectl
 - Docker
 - AWS CLI / GCP CLI (depending on cloud provider)
+- SOPS + age (for secrets management)
 
 ### Setup
 
@@ -47,6 +48,10 @@ This repository contains all infrastructure definitions, deployment scripts, and
 | `dev`       | Development environment for testing  |
 | `staging`   | Pre-production environment           |
 | `prod`      | Production environment               |
+
+## Security
+
+This repository uses SOPS with age encryption for secrets management. See [docs/secrets-management.md](docs/secrets-management.md) for setup instructions and usage.
 
 ## Related Repositories
 

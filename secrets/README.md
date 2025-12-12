@@ -6,8 +6,9 @@ This directory contains encrypted secrets managed by SOPS with age encryption.
 
 | File | Description |
 |------|-------------|
-| `production.enc.yaml` | Encrypted production secrets |
-| `staging.enc.yaml` | Encrypted staging secrets |
+| `production.enc.yaml` | Encrypted production secrets (created after key setup) |
+| `staging.enc.yaml` | Encrypted staging secrets (created after key setup) |
+| `dev.enc.yaml` | Encrypted development secrets (created after key setup) |
 | `*.example` | Template files showing expected structure |
 
 ## Usage

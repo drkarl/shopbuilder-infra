@@ -204,10 +204,11 @@ jobs:
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
         run: |
-          echo "$SOPS_AGE_KEY" > /tmp/key.txt
-          export SOPS_AGE_KEY_FILE=/tmp/key.txt
+          KEY_FILE=$(mktemp)
+          echo "$SOPS_AGE_KEY" > "$KEY_FILE"
+          export SOPS_AGE_KEY_FILE="$KEY_FILE"
           sops -d secrets/production.enc.yaml > .env
-          rm /tmp/key.txt
+          rm "$KEY_FILE"
 ```
 
 ### Woodpecker CI
@@ -218,10 +219,11 @@ steps:
   deploy:
     secrets: [sops_age_key]
     commands:
-      - echo "$SOPS_AGE_KEY" > /tmp/key.txt
-      - export SOPS_AGE_KEY_FILE=/tmp/key.txt
+      - KEY_FILE=$(mktemp)
+      - echo "$SOPS_AGE_KEY" > "$KEY_FILE"
+      - export SOPS_AGE_KEY_FILE="$KEY_FILE"
       - sops -d secrets/production.enc.yaml > .env
-      - rm /tmp/key.txt
+      - rm "$KEY_FILE"
 ```
 
 ## Terraform Integration
