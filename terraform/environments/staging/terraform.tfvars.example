@@ -1,0 +1,21 @@
+# Staging Environment Configuration
+# Copy this file to terraform.tfvars and adjust values as needed
+
+project_name = "shopbuilder"
+
+# OVH Provider Configuration
+ovh_endpoint = "ovh-eu"
+
+# Scaleway Provider Configuration
+scaleway_region = "fr-par"
+scaleway_zone   = "fr-par-1"
+
+# VPS Configuration
+vps_instance_type = "DEV1-M"
+
+# Common Tags
+common_tags = {
+  Environment = "staging"
+  Project     = "shopbuilder"
+  ManagedBy   = "terraform"
+}
