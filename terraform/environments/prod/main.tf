@@ -19,6 +19,11 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = "~> 4.0"
     }
+
+    neon = {
+      source  = "kislerdm/neon"
+      version = "~> 0.6"
+    }
   }
 }
 
@@ -36,6 +41,10 @@ provider "scaleway" {
 # Cloudflare Provider
 # Authentication via CLOUDFLARE_API_TOKEN environment variable
 provider "cloudflare" {}
+
+# Neon Provider
+# Authentication via NEON_API_KEY environment variable
+provider "neon" {}
 
 locals {
   environment = "prod"
@@ -114,6 +123,35 @@ module "dns" {
       comment = "Woodpecker CI server"
     }
   ]
+}
+
+#------------------------------------------------------------------------------
+# Neon PostgreSQL Database
+#------------------------------------------------------------------------------
+
+module "neon_database" {
+  source = "../../modules/neon-postgres"
+
+  project_name = "${var.project_name}-${local.environment}"
+  environment  = local.environment
+  org_id       = var.neon_org_id
+  region_id    = var.neon_region_id
+
+  # Database configuration
+  database_name = var.neon_database_name
+  database_role = var.neon_database_role
+  pg_version    = var.neon_pg_version
+
+  # Production compute settings (higher resources)
+  autoscaling_min_cu      = var.neon_autoscaling_min_cu
+  autoscaling_max_cu      = var.neon_autoscaling_max_cu
+  suspend_timeout_seconds = var.neon_suspend_timeout_seconds
+
+  # Data retention (7 days for production PITR)
+  history_retention_seconds = var.neon_history_retention_seconds
+
+  # Security: IP allow list (empty = allow all)
+  allowed_ips = var.neon_allowed_ips
 }
 
 # Add additional module calls here as infrastructure grows
