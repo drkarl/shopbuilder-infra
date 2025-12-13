@@ -75,12 +75,14 @@ module "vps" {
   environment   = "prod"
   provider_type = "ovh"
 
-  instance_type = "s1-2"
+  instance_type = "s1-2"  # For reference only (Scaleway)
   region        = "GRA11"
 
-  # OVH-specific configuration
+  # OVH-specific configuration (UUIDs required - use OVH API or OpenStack CLI to get these)
   ovh_cloud_project_id = "your-project-id"
+  ovh_flavor_id        = "your-flavor-uuid"   # e.g., from 'openstack flavor list'
   ovh_image_id         = "your-ubuntu-image-id"
+  ovh_billing_period   = "hourly"  # or "monthly"
 
   ssh_public_key = file("~/.ssh/id_ed25519.pub")
   ssh_user       = "ubuntu"
@@ -136,7 +138,9 @@ module "vps" {
 | tags | Tags to apply to the VPS instance | `map(string)` | `{}` | no |
 | enable_ovh_firewall | Enable nftables-based firewall for OVH instances | `bool` | `true` | no |
 | ovh_cloud_project_id | OVH Cloud Project ID (required for OVH provider) | `string` | `null` | no |
-| ovh_image_id | OVH image ID for the instance (required for OVH provider) | `string` | `null` | no |
+| ovh_image_id | OVH image ID (UUID) for the instance | `string` | `null` | no |
+| ovh_flavor_id | OVH flavor ID (UUID) for the instance | `string` | `null` | no |
+| ovh_billing_period | OVH billing period (hourly or monthly) | `string` | `"hourly"` | no |
 
 ## Outputs
 

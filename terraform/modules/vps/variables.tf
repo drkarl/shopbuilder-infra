@@ -175,3 +175,20 @@ variable "ovh_image_id" {
   type        = string
   default     = null
 }
+
+variable "ovh_flavor_id" {
+  description = "OVH flavor ID (UUID) for the instance (required for OVH provider). Use 'openstack flavor list' or OVH API to get flavor IDs."
+  type        = string
+  default     = null
+}
+
+variable "ovh_billing_period" {
+  description = "OVH billing period (hourly or monthly)"
+  type        = string
+  default     = "hourly"
+
+  validation {
+    condition     = contains(["hourly", "monthly"], var.ovh_billing_period)
+    error_message = "Billing period must be 'hourly' or 'monthly'."
+  }
+}
