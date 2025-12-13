@@ -11,7 +11,7 @@
 services:
   # Woodpecker CI Server
   woodpecker-server:
-    image: woodpeckerci/woodpecker-server:latest
+    image: ${WOODPECKER_SERVER_IMAGE:-woodpeckerci/woodpecker-server:v2.3.0}
     container_name: woodpecker-server
     restart: unless-stopped
     ports:
@@ -37,7 +37,7 @@ services:
     networks:
       - woodpecker-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -58,7 +58,7 @@ services:
 
   # Woodpecker CI Agent (runs pipelines)
   woodpecker-agent:
-    image: woodpeckerci/woodpecker-agent:latest
+    image: ${WOODPECKER_AGENT_IMAGE:-woodpeckerci/woodpecker-agent:v2.3.0}
     container_name: woodpecker-agent
     restart: unless-stopped
     depends_on:
