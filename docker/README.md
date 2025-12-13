@@ -2,6 +2,76 @@
 
 Docker Compose configuration for the ShopBuilder core runtime stack running on VPS.
 
+## Building Docker Images
+
+### Multi-Stage Dockerfile
+
+The `Dockerfile` uses a multi-stage build optimized for production:
+
+1. **Build Stage** (`gradle:8-jdk21`): Compiles the Spring Boot application with Gradle
+2. **Runtime Stage** (`eclipse-temurin:21-jre`): Minimal JRE image with the compiled JAR
+
+### Building Images
+
+Build from the application source code directory:
+
+```bash
+# Build the Spring API image
+docker build -t shopbuilder/spring-api:latest \
+  -f /path/to/infra/docker/Dockerfile \
+  /path/to/spring-boot-app
+
+# Build with a specific tag
+docker build -t shopbuilder/spring-api:v1.0.0 \
+  -f /path/to/infra/docker/Dockerfile \
+  /path/to/spring-boot-app
+
+# Build for workers (same Dockerfile, different image name)
+docker build -t shopbuilder/spring-workers:latest \
+  -f /path/to/infra/docker/Dockerfile \
+  /path/to/spring-boot-workers
+```
+
+### Expected Project Structure
+
+The Dockerfile expects the following Gradle project structure in the build context:
+
+```
+spring-boot-app/
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties (optional)
+├── gradle/
+│   └── wrapper/
+└── src/
+    └── main/
+        └── java/
+```
+
+### JVM Configuration
+
+The runtime image is configured with JVM arguments optimized for virtual threads (JDK 21+):
+
+| Option | Description |
+|--------|-------------|
+| `-XX:+UseZGC` | Z Garbage Collector for low-latency |
+| `-XX:+ZGenerational` | Generational ZGC for improved throughput |
+| `-Xmx2g` | Maximum heap size (2GB) |
+| `-Xms512m` | Initial heap size (512MB) |
+| `-XX:+ExitOnOutOfMemoryError` | Exit JVM on OOM for container restart |
+| `-Djava.security.egd=file:/dev/./urandom` | Faster random number generation |
+
+Override JVM settings at runtime via the `JAVA_TOOL_OPTIONS` environment variable:
+
+```bash
+# Example: Increase heap to 4GB
+JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx4g -Xms1g -XX:+ExitOnOutOfMemoryError"
+```
+
+### Virtual Threads
+
+Virtual threads are enabled by default in JDK 21+. The ZGC garbage collector is specifically chosen for its low-latency characteristics, which complement virtual threads well. No additional JVM flags are required to enable virtual threads.
+
 ## Services
 
 | Service | Description | Ports |
@@ -244,3 +314,63 @@ Add `pull_policy` to service definitions in `docker-compose.yml` as needed.
 1. Check resource usage: `docker stats`
 2. Adjust memory limits in `.env`
 3. Consider scaling horizontally
+
+### JVM Issues
+
+1. Check JVM arguments: `docker compose exec spring-api env | grep JAVA`
+2. Review GC logs: JVM will log GC pauses to stdout
+3. Enable verbose GC logging by adding `-Xlog:gc*` to `JAVA_TOOL_OPTIONS`
+
+## CI/CD Integration
+
+### Building and Pushing Images
+
+Example workflow for building and pushing images to a registry:
+
+```bash
+#!/bin/bash
+# Build and push Spring Boot images
+
+VERSION=${VERSION:-latest}
+REGISTRY=${REGISTRY:-ghcr.io/your-org}
+
+# Build API image
+docker build -t ${REGISTRY}/shopbuilder-api:${VERSION} \
+  -f docker/Dockerfile \
+  ../spring-boot-app
+
+# Build Workers image
+docker build -t ${REGISTRY}/shopbuilder-workers:${VERSION} \
+  -f docker/Dockerfile \
+  ../spring-boot-workers
+
+# Push images
+docker push ${REGISTRY}/shopbuilder-api:${VERSION}
+docker push ${REGISTRY}/shopbuilder-workers:${VERSION}
+```
+
+### Deploying Updates
+
+```bash
+# Update image references in .env
+SPRING_API_IMAGE=ghcr.io/your-org/shopbuilder-api:v1.0.0
+SPRING_WORKERS_IMAGE=ghcr.io/your-org/shopbuilder-workers:v1.0.0
+
+# Pull and restart services
+docker compose pull
+docker compose up -d
+```
+
+### Secrets Management with SOPS
+
+For production deployments, use SOPS to manage secrets. See `docs/secrets-management.md` for details.
+
+```bash
+# Decrypt secrets and source them
+sops -d secrets/production.enc.yaml | yq -r 'to_entries | .[] | "export \(.key)=\(.value)"' > /tmp/env
+source /tmp/env
+rm /tmp/env
+
+# Or use SOPS exec
+sops exec-env secrets/production.enc.yaml 'docker compose up -d'
+```
