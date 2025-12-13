@@ -131,11 +131,11 @@ resource "cloudflare_custom_hostname" "this" {
     dynamic "settings" {
       for_each = each.value.ssl_settings != null ? [each.value.ssl_settings] : []
       content {
-        min_version = settings.value.min_tls_version
-        ciphers     = settings.value.ciphers
-        early_hints = settings.value.early_hints
-        http2       = settings.value.http2
-        tls_1_3     = settings.value.tls_1_3
+        min_tls_version = settings.value.min_tls_version
+        ciphers         = settings.value.ciphers
+        early_hints     = settings.value.early_hints
+        http2           = settings.value.http2
+        tls13           = settings.value.tls_1_3
       }
     }
   }
