@@ -267,21 +267,23 @@ git clone https://github.com/drkarl/shopbuilder-infra.git
 cd shopbuilder-infra
 
 # Set cloud provider credentials
-# For Scaleway:
+
+# Scaleway (REQUIRED - primary VPS provider)
 export SCW_ACCESS_KEY="your-access-key"
 export SCW_SECRET_KEY="your-secret-key"
 export SCW_DEFAULT_PROJECT_ID="your-project-id"
 
-# For OVH (if using):
-export OVH_ENDPOINT="ovh-eu"
-export OVH_APPLICATION_KEY="your-app-key"
-export OVH_APPLICATION_SECRET="your-app-secret"
-export OVH_CONSUMER_KEY="your-consumer-key"
+# OVH (OPTIONAL - only if using OVH as secondary provider)
+# Uncomment if OVH resources are configured in Terraform
+# export OVH_ENDPOINT="ovh-eu"
+# export OVH_APPLICATION_KEY="your-app-key"
+# export OVH_APPLICATION_SECRET="your-app-secret"
+# export OVH_CONSUMER_KEY="your-consumer-key"
 
-# For Neon:
+# Neon (REQUIRED - database provider)
 export NEON_API_KEY="your-neon-api-key"
 
-# For Upstash:
+# Upstash (REQUIRED - Redis cache provider)
 export TF_VAR_upstash_email="your-email"
 export TF_VAR_upstash_api_key="your-api-key"
 ```
@@ -421,6 +423,8 @@ If encrypted secret files are corrupted:
 | **P4** | Minor Issue | Non-critical feature unavailable | 24 hours | Low priority |
 
 ### Escalation Contacts
+
+> **Note**: Fill in contact details before the first DR drill. Update this table with your team's actual contact methods (Slack handles, phone numbers, PagerDuty schedules).
 
 | Role | Contact | When to Engage |
 |------|---------|----------------|
