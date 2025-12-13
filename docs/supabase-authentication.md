@@ -114,11 +114,14 @@ spring:
 ```java
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity  // Required for @PreAuthorize annotations
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // Disable CSRF for stateless JWT-based API (no session cookies)
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/public/**").permitAll()
@@ -175,8 +178,11 @@ public class SupabaseUserContext {
 
     public List<String> getRoles(Jwt jwt) {
         Map<String, Object> appMetadata = jwt.getClaim("app_metadata");
-        if (appMetadata != null && appMetadata.containsKey("roles")) {
-            return (List<String>) appMetadata.get("roles");
+        if (appMetadata != null && appMetadata.get("roles") instanceof List<?> rolesList) {
+            return rolesList.stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .toList();
         }
         return Collections.emptyList();
     }
@@ -195,6 +201,12 @@ public class SupabaseUserContext {
 public class OrderController {
 
     private final SupabaseUserContext userContext;
+    private final OrderService orderService;
+
+    public OrderController(SupabaseUserContext userContext, OrderService orderService) {
+        this.userContext = userContext;
+        this.orderService = orderService;
+    }
 
     @GetMapping
     public List<Order> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
