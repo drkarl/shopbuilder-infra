@@ -127,6 +127,8 @@ All configuration is done through environment variables. See `.env.example` for 
 - `AWS_ACCESS_KEY_ID` - AWS access key for S3
 - `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3
 - `S3_BUCKET_NAME` - S3 bucket for asset storage
+- `STRIPE_SECRET_KEY` - Stripe API secret key (`sk_test_...` or `sk_live_...`)
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret (`whsec_...`)
 
 ### Resource Limits
 
