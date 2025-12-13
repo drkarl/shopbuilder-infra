@@ -39,3 +39,10 @@ variable "vps_instance_type" {
   type        = string
   default     = "DEV1-S"
 }
+
+variable "ssh_public_key" {
+  description = "SSH public key for VPS access"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
