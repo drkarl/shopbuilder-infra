@@ -36,10 +36,24 @@ jobs:
       deployments: write
 
     steps:
+      - name: Validate repository source
+        if: github.event.client_payload.repository != ''
+        run: |
+          REQUESTED_REPO="${{ github.event.client_payload.repository }}"
+          CURRENT_OWNER="${{ github.repository_owner }}"
+          REQUESTED_OWNER="${REQUESTED_REPO%%/*}"
+          if [ "$REQUESTED_OWNER" != "$CURRENT_OWNER" ]; then
+            echo "Error: Repository '$REQUESTED_REPO' is not from owner '$CURRENT_OWNER'"
+            echo "Only repositories from the same owner/organization are allowed"
+            exit 1
+          fi
+          echo "Repository validation passed: $REQUESTED_REPO"
+
       - name: Checkout marketing site repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           # If using repository_dispatch, specify the marketing site repo
+          # Security: repository must belong to same owner (validated above)
           repository: ${{ github.event.client_payload.repository || github.repository }}
           ref: ${{ github.event.client_payload.ref || github.ref }}
           submodules: recursive
