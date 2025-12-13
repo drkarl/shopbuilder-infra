@@ -19,6 +19,11 @@ terraform {
       source  = "kislerdm/neon"
       version = "~> 0.6"
     }
+
+    upstash = {
+      source  = "upstash/upstash"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -36,6 +41,13 @@ provider "scaleway" {
 # Neon Provider
 # Authentication via NEON_API_KEY environment variable
 provider "neon" {}
+
+# Upstash Provider
+# Set TF_VAR_upstash_email and TF_VAR_upstash_api_key environment variables or use .tfvars
+provider "upstash" {
+  email   = var.upstash_email
+  api_key = var.upstash_api_key
+}
 
 locals {
   environment = "staging"
@@ -73,6 +85,21 @@ module "neon_database" {
 
   # Security: IP allow list (empty = allow all)
   allowed_ips = var.neon_allowed_ips
+}
+
+#------------------------------------------------------------------------------
+# Upstash Redis - Caching and Session Management
+#------------------------------------------------------------------------------
+
+module "redis" {
+  source = "../../modules/upstash-redis"
+
+  database_name    = "${var.project_name}-${local.environment}"
+  region           = var.upstash_redis_region
+  environment      = local.environment
+  tls_enabled      = true
+  eviction_enabled = true
+  auto_scale       = false
 }
 
 # Add additional module calls here as infrastructure grows

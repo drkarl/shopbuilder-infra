@@ -132,3 +132,25 @@ variable "neon_allowed_ips" {
   type        = list(string)
   default     = []
 }
+
+#------------------------------------------------------------------------------
+# Upstash Provider Variables
+#------------------------------------------------------------------------------
+
+variable "upstash_email" {
+  description = "Email address registered with Upstash"
+  type        = string
+  sensitive   = true
+}
+
+variable "upstash_api_key" {
+  description = "Upstash API key from console"
+  type        = string
+  sensitive   = true
+}
+
+variable "upstash_redis_region" {
+  description = "Region for Upstash Redis database"
+  type        = string
+  default     = "eu-west-1"
+}
