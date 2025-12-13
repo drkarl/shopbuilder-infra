@@ -189,6 +189,13 @@ EOF
         else
             log_error "SSH config test failed! Restoring original..."
             cp "${sshd_config}.original" "$sshd_config"
+            log_info "Original SSH config restored"
+            log_info "Attempting to restart SSH service with original config..."
+            if systemctl restart sshd; then
+                log_info "SSH service restarted successfully with original config"
+            else
+                log_error "Failed to restart SSH service after restoring original config!"
+            fi
             exit 1
         fi
     fi
@@ -449,7 +456,11 @@ setup_logrotate() {
     create 0640 root adm
     sharedscripts
     postrotate
-        /usr/lib/rsyslog/rsyslog-rotate
+        if [ -x /usr/lib/rsyslog/rsyslog-rotate ]; then
+            /usr/lib/rsyslog/rsyslog-rotate
+        elif command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet rsyslog; then
+            systemctl reload rsyslog
+        fi
     endscript
 }
 EOF
@@ -478,7 +489,11 @@ EOF
     delaycompress
     sharedscripts
     postrotate
-        /usr/lib/rsyslog/rsyslog-rotate
+        if [ -x /usr/lib/rsyslog/rsyslog-rotate ]; then
+            /usr/lib/rsyslog/rsyslog-rotate
+        elif command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet rsyslog; then
+            systemctl reload rsyslog
+        fi
     endscript
 }
 EOF

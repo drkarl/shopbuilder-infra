@@ -128,9 +128,12 @@ check_ssh() {
         log_fail "Public key authentication is NOT enabled"
     fi
 
-    # Check SSH port
+    # Check SSH port (defaults to 22 if not explicitly configured)
     local current_port
-    current_port=$(grep -E "^Port\s+" "$sshd_config" | awk '{print $2}' || echo "22")
+    current_port=$(grep -E "^Port\s+" "$sshd_config" | awk '{print $2}')
+    if [[ -z "$current_port" ]]; then
+        current_port="22"
+    fi
     if [[ "$current_port" == "$SSH_PORT" ]]; then
         log_pass "SSH port is set to $SSH_PORT"
     else
@@ -443,6 +446,12 @@ main() {
 
     if [[ "$OUTPUT_JSON" == "true" ]]; then
         output_json
+        # Exit with appropriate code based on failures
+        if [[ $FAIL_COUNT -gt 0 ]]; then
+            exit 1
+        else
+            exit 0
+        fi
     else
         echo "=========================================="
         echo "Summary"
