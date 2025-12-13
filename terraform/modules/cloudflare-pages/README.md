@@ -161,7 +161,7 @@ module "dns" {
 
   marketing_record = {
     subdomain = "@"
-    value     = module.marketing_site.subdomain
+    value     = "${module.marketing_site.subdomain}.pages.dev"
     type      = "CNAME"
     proxied   = true
     comment   = "Marketing site on Cloudflare Pages"
@@ -170,7 +170,7 @@ module "dns" {
   custom_records = [
     {
       name    = "www"
-      value   = module.marketing_site.subdomain
+      value   = "${module.marketing_site.subdomain}.pages.dev"
       type    = "CNAME"
       proxied = true
       comment = "WWW redirect to marketing site"
