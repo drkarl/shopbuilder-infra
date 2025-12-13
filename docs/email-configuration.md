@@ -173,7 +173,7 @@ module "dns" {
 
     dkim = [
       {
-        selector = "resend._domainkey.notifications"
+        selector = "resend._domainkey"  # Selector is relative to sending_domain
         value    = "p=..."
       }
     ]
@@ -265,6 +265,13 @@ public class EmailService {
             .retrieve()
             .toBodilessEntity();
     }
+
+    // TODO: Implement using a templating engine (Thymeleaf, Freemarker, or Mustache)
+    private String renderTemplate(String templateName, Object context) {
+        // Example with Thymeleaf:
+        // return templateEngine.process(templateName, new Context(Locale.getDefault(), Map.of("order", context)));
+        throw new UnsupportedOperationException("Implement template rendering");
+    }
 }
 ```
 
@@ -281,13 +288,18 @@ public class ResendWebhookController {
     @PostMapping
     public ResponseEntity<Void> handleWebhook(
             @RequestBody String payload,
-            @RequestHeader("svix-signature") String signature) {
+            @RequestHeader("svix-id") String svixId,
+            @RequestHeader("svix-timestamp") String svixTimestamp,
+            @RequestHeader("svix-signature") String svixSignature) {
 
-        if (!verifySignature(payload, signature, webhookSecret)) {
+        // Verify webhook signature using Svix SDK
+        // See: https://resend.com/docs/dashboard/webhooks/introduction
+        // and: https://docs.svix.com/receiving/verifying-payloads/how
+        if (!verifySignature(payload, svixId, svixTimestamp, svixSignature, webhookSecret)) {
             return ResponseEntity.status(401).build();
         }
 
-        // Process webhook event
+        // Process webhook event (implement parseEvent using JSON deserialization)
         var event = parseEvent(payload);
         switch (event.type()) {
             case "email.bounced" -> handleBounce(event);
@@ -296,6 +308,19 @@ public class ResendWebhookController {
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    // TODO: Implement using Svix Java SDK (com.svix:svix)
+    // Example: new Webhook(webhookSecret).verify(payload, headers)
+    private boolean verifySignature(String payload, String svixId,
+            String svixTimestamp, String svixSignature, String secret) {
+        // Implementation required - see Svix SDK documentation
+        throw new UnsupportedOperationException("Implement webhook verification");
+    }
+
+    private WebhookEvent parseEvent(String payload) {
+        // Deserialize JSON payload to WebhookEvent record/class
+        throw new UnsupportedOperationException("Implement event parsing");
     }
 }
 ```

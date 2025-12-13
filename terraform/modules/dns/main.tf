@@ -145,7 +145,7 @@ resource "cloudflare_record" "email_dmarc" {
   count = local.email_enabled && var.email_records.dmarc != null ? 1 : 0
 
   zone_id = data.cloudflare_zone.this.id
-  name    = "_dmarc"
+  name    = local.email_domain_name == "@" ? "_dmarc" : "_dmarc.${local.email_domain_name}"
   content = local.dmarc_value
   type    = "TXT"
   ttl     = var.email_records.dmarc.ttl
