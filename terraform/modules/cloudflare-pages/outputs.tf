@@ -49,10 +49,10 @@ output "www_redirect_domain_id" {
 output "build_config" {
   description = "Build configuration for the Pages project"
   value = {
-    build_command   = var.build_command
-    output_dir      = var.build_output_directory
-    root_dir        = var.build_root_directory
-    prod_branch     = var.production_branch
+    build_command = var.build_command
+    output_dir    = var.build_output_directory
+    root_dir      = var.build_root_directory
+    prod_branch   = var.production_branch
   }
 }
 
