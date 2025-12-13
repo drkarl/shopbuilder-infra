@@ -1,0 +1,141 @@
+services:
+  # Main Spring Boot API server
+  spring-api:
+    image: ${SPRING_API_IMAGE:-shopbuilder/spring-api:latest}
+    container_name: shopbuilder-api
+    restart: unless-stopped
+    ports:
+      - "${SPRING_API_PORT:-8080}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-production}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USERNAME:-shopbuilder}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-eu-central-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVER_PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "${SPRING_API_CPU_LIMIT:-2.0}"
+          memory: ${SPRING_API_MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: "${SPRING_API_CPU_RESERVATION:-0.5}"
+          memory: ${SPRING_API_MEMORY_RESERVATION:-512M}
+    networks:
+      - shopbuilder-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Background job processing workers
+  spring-workers:
+    image: ${SPRING_WORKERS_IMAGE:-shopbuilder/spring-workers:latest}
+    container_name: shopbuilder-workers
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-production}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USERNAME:-shopbuilder}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-eu-central-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-4}
+      - SERVER_PORT=8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "${SPRING_WORKERS_CPU_LIMIT:-2.0}"
+          memory: ${SPRING_WORKERS_MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: "${SPRING_WORKERS_CPU_RESERVATION:-0.5}"
+          memory: ${SPRING_WORKERS_MEMORY_RESERVATION:-512M}
+    networks:
+      - shopbuilder-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - worker-temp:/tmp/worker
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: shopbuilder-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME:-shopbuilder}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_VHOST:-shopbuilder}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "${RABBITMQ_CPU_LIMIT:-1.0}"
+          memory: ${RABBITMQ_MEMORY_LIMIT:-512M}
+        reservations:
+          cpus: "${RABBITMQ_CPU_RESERVATION:-0.25}"
+          memory: ${RABBITMQ_MEMORY_RESERVATION:-256M}
+    networks:
+      - shopbuilder-network
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  shopbuilder-network:
+    driver: bridge
+    name: shopbuilder-network
+
+volumes:
+  rabbitmq-data:
+    name: shopbuilder-rabbitmq-data
+  worker-temp:
+    name: shopbuilder-worker-temp
