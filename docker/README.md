@@ -7,8 +7,12 @@ Docker Compose configuration for the ShopBuilder core runtime stack running on V
 | Service | Description | Ports |
 |---------|-------------|-------|
 | `spring-api` | Main Spring Boot API server | 8080 |
-| `spring-workers` | Background job processing (image processing, async tasks) | 8081 (internal) |
+| `spring-workers` | Background job processing (image processing, async tasks) | 8081 (internal health check only) |
 | `rabbitmq` | Message broker for async communication | 5672, 15672 (management UI) |
+
+### External Dependencies
+
+This Docker Compose stack assumes a **PostgreSQL database is managed externally** (e.g., cloud-managed database like AWS RDS, or a separate server). The database is not included in this compose file. Ensure your database is accessible from the Docker host before starting services.
 
 ## Quick Start
 
@@ -65,13 +69,15 @@ Default resource limits are configured for a medium-sized VPS. Adjust these in y
 
 All services have health checks configured:
 
-- **spring-api**: HTTP check on `/actuator/health`
-- **spring-workers**: HTTP check on `/actuator/health`
+- **spring-api**: HTTP check on `/actuator/health` (port 8080, externally accessible)
+- **spring-workers**: HTTP check on `/actuator/health` (port 8081, internal only - not exposed to host)
 - **rabbitmq**: `rabbitmq-diagnostics ping`
 
 Health checks run every 30 seconds with a 10-second timeout and 3 retries.
 
 > **Note**: The Spring service health checks use `curl`. Ensure your Spring Boot Docker images have `curl` installed, or modify the health checks to use an alternative like `wget --spider`.
+
+> **Note**: Worker health checks are only accessible within the Docker network. For external monitoring, use `docker compose ps` or access worker health via `docker compose exec spring-workers curl http://localhost:8081/actuator/health`.
 
 ## Operations
 
@@ -134,11 +140,11 @@ docker compose up -d --force-recreate
 
 ## Networking
 
-All services communicate over the `shopbuilder-network` bridge network. Services can reach each other by container name:
+All services communicate over the `shopbuilder-network` bridge network. Services can reach each other by service name:
 
 - `rabbitmq` - RabbitMQ broker
-- `shopbuilder-api` - API service (container name)
-- `shopbuilder-workers` - Worker service (container name)
+- `spring-api` - API service (also available as `shopbuilder-api` container name)
+- `spring-workers` - Worker service (service name, supports scaling)
 
 ## Production Considerations
 
