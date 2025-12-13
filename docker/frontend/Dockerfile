@@ -18,6 +18,11 @@ ARG VITE_API_URL
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 
+# Validate required build args
+RUN if [ -z "$VITE_API_URL" ]; then \
+      echo "ERROR: VITE_API_URL build arg is required" && exit 1; \
+    fi
+
 # Build the application with optimizations
 ENV NODE_ENV=production
 RUN npm run build
@@ -36,23 +41,27 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY security-headers.conf /etc/nginx/security-headers.conf
 
 # Copy built static files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Create non-root user for nginx
+# Set up permissions for non-root nginx user
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid
 
-# Expose port 80
-EXPOSE 80
+# Switch to non-root user
+USER nginx
+
+# Expose port 8080 (non-privileged port for non-root user)
+EXPOSE 8080
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Run nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
