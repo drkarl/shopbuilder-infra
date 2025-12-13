@@ -149,7 +149,7 @@ Optional variables with defaults:
 
 3. Set environment variables:
    ```bash
-   export NEON_API_KEY="your-api-key"
+   export NEON_API_KEY="your-api-key"  # pragma: allowlist secret
    ```
 
 4. Create terraform.tfvars for your environment:

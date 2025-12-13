@@ -31,7 +31,7 @@ resource "neon_project" "this" {
 
   pg_version                 = var.pg_version
   history_retention_seconds  = var.history_retention_seconds
-  store_password             = "yes"
+  store_password             = "yes" # pragma: allowlist secret
   enable_logical_replication = var.enable_logical_replication ? "yes" : "no"
 
   # Default branch configuration
@@ -49,6 +49,6 @@ resource "neon_project" "this" {
   }
 
   # IP allow list for security (if configured)
-  allowed_ips                        = var.allowed_ips
+  allowed_ips                         = var.allowed_ips
   allowed_ips_protected_branches_only = var.allowed_ips_protected_branches_only ? "yes" : "no"
 }
