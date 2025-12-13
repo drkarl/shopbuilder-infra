@@ -71,7 +71,7 @@ Default resource limits are configured for a medium-sized VPS. Adjust these in y
 
 All services have health checks configured:
 
-- **frontend**: HTTP check on `/health` (port 80 internal, exposed on 3000)
+- **frontend**: HTTP check on `/health` (port 8080 internal, exposed on 3000)
 - **spring-api**: HTTP check on `/actuator/health` (port 8080, externally accessible)
 - **spring-workers**: HTTP check on `/actuator/health` (port 8081, internal only - not exposed to host)
 - **rabbitmq**: `rabbitmq-diagnostics ping`
