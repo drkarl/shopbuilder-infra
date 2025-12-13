@@ -279,22 +279,22 @@ cd shopbuilder-infra
 
 # Scaleway (REQUIRED - primary VPS provider)
 export SCW_ACCESS_KEY="your-access-key"
-export SCW_SECRET_KEY="your-secret-key"
+export SCW_SECRET_KEY="your-secret-key"  # pragma: allowlist secret
 export SCW_DEFAULT_PROJECT_ID="your-project-id"
 
 # OVH (OPTIONAL - only if using OVH as secondary provider)
 # Uncomment if OVH resources are configured in Terraform
 # export OVH_ENDPOINT="ovh-eu"
 # export OVH_APPLICATION_KEY="your-app-key"
-# export OVH_APPLICATION_SECRET="your-app-secret"
+# export OVH_APPLICATION_SECRET="your-app-secret"  # pragma: allowlist secret
 # export OVH_CONSUMER_KEY="your-consumer-key"
 
 # Neon (REQUIRED - database provider)
-export NEON_API_KEY="your-neon-api-key"
+export NEON_API_KEY="your-neon-api-key"  # pragma: allowlist secret
 
 # Upstash (REQUIRED - Redis cache provider)
 export TF_VAR_upstash_email="your-email"
-export TF_VAR_upstash_api_key="your-api-key"
+export TF_VAR_upstash_api_key="your-api-key"  # pragma: allowlist secret
 ```
 
 #### Step 3: Decrypt Secrets
