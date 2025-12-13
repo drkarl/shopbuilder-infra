@@ -192,3 +192,75 @@ variable "ovh_billing_period" {
     error_message = "Billing period must be 'hourly' or 'monthly'."
   }
 }
+
+#------------------------------------------------------------------------------
+# Security Hardening Variables
+#------------------------------------------------------------------------------
+
+variable "enable_hardening" {
+  description = "Enable security hardening (SSH hardening, fail2ban, unattended-upgrades)"
+  type        = bool
+  default     = true
+}
+
+variable "hardening_ssh_port" {
+  description = "SSH port to use (change from default 22 for additional security)"
+  type        = number
+  default     = 22
+
+  validation {
+    condition     = var.hardening_ssh_port > 0 && var.hardening_ssh_port <= 65535
+    error_message = "SSH port must be between 1 and 65535."
+  }
+}
+
+variable "hardening_ssh_user" {
+  description = "SSH user to allow (should match the user configured on the instance)"
+  type        = string
+  default     = "root"
+
+  validation {
+    condition     = can(regex("^[a-z_][a-z0-9_-]*$", var.hardening_ssh_user))
+    error_message = "SSH user must be a valid Unix username."
+  }
+}
+
+variable "enable_fail2ban" {
+  description = "Enable fail2ban for SSH brute force protection"
+  type        = bool
+  default     = true
+}
+
+variable "fail2ban_maxretry" {
+  description = "Number of failures before IP is banned by fail2ban"
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.fail2ban_maxretry >= 1 && var.fail2ban_maxretry <= 10
+    error_message = "fail2ban maxretry must be between 1 and 10."
+  }
+}
+
+variable "fail2ban_bantime" {
+  description = "Ban duration in seconds for fail2ban"
+  type        = number
+  default     = 3600
+
+  validation {
+    condition     = var.fail2ban_bantime >= 60
+    error_message = "fail2ban bantime must be at least 60 seconds."
+  }
+}
+
+variable "enable_unattended_upgrades" {
+  description = "Enable automatic security updates"
+  type        = bool
+  default     = true
+}
+
+variable "enable_docker_hardening" {
+  description = "Enable Docker daemon security hardening (userns-remap, no-new-privileges)"
+  type        = bool
+  default     = true
+}
