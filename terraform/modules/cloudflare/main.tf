@@ -117,6 +117,13 @@ resource "cloudflare_custom_hostname" "this" {
   zone_id  = data.cloudflare_zone.this[0].id
   hostname = each.value.hostname
 
+  lifecycle {
+    precondition {
+      condition     = var.zone_name != null
+      error_message = "zone_name is required when custom_hostnames is configured."
+    }
+  }
+
   ssl {
     method = each.value.ssl_method
     type   = each.value.ssl_type

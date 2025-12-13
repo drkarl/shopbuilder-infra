@@ -179,6 +179,15 @@ curl -X POST \
 public class PagesDeploymentService {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
+
+    @Value("${cloudflare.account-id}")
+    private String accountId;
+
+    // Helper method for SHA-256 hashing
+    private String sha256(byte[] data) {
+        return DigestUtils.sha256Hex(data); // Apache Commons Codec
+    }
 
     public Mono<DeploymentResponse> deploy(String projectName, Map<String, byte[]> files) {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
@@ -255,6 +264,9 @@ curl -X DELETE \
 public class CustomHostnameService {
 
     private final WebClient cloudflareClient;
+
+    @Value("${cloudflare.zone-id}")
+    private String zoneId;
 
     public Mono<CustomHostname> createHostname(String hostname) {
         return cloudflareClient.post()
@@ -346,6 +358,9 @@ curl -X POST \
 public class CachePurgeService {
 
     private final WebClient cloudflareClient;
+
+    @Value("${cloudflare.zone-id}")
+    private String zoneId;
 
     public Mono<PurgeResponse> purgeUrls(List<String> urls) {
         return cloudflareClient.post()
