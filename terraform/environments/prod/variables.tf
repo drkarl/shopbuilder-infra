@@ -26,6 +26,17 @@ variable "scaleway_zone" {
   default     = "fr-par-1"
 }
 
+# Cloudflare Provider Variables
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID for Pages and DNS management"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-f0-9]{32}$", var.cloudflare_account_id))
+    error_message = "Cloudflare account ID must be a 32-character hexadecimal string."
+  }
+}
+
 # Common Tags
 variable "common_tags" {
   description = "Common tags to apply to all resources"
