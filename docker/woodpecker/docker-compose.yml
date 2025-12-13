@@ -18,6 +18,8 @@ services:
     restart: unless-stopped
     ports:
       - "${WOODPECKER_HTTP_PORT:-8000}:8000"
+      # gRPC port: Only needed if running agents on separate hosts outside Docker network
+      # For agents in same Docker network, they connect via internal service name
       - "${WOODPECKER_GRPC_PORT:-9000}:9000"
     environment:
       # Server configuration
@@ -61,9 +63,9 @@ services:
 
   # Woodpecker CI Agent
   # Executes pipeline steps (Docker-based builds)
+  # Note: container_name is omitted to allow scaling with `docker compose up --scale`
   woodpecker-agent:
     image: woodpeckerci/woodpecker-agent:${WOODPECKER_VERSION:-latest}
-    container_name: woodpecker-agent
     restart: unless-stopped
     environment:
       # Connect to server via gRPC
