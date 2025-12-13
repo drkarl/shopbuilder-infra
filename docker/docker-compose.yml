@@ -60,6 +60,18 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY:?RESEND_API_KEY is required}
       - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@staticshop.io}
+      # Observability: Grafana Cloud OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-shopbuilder-api}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=production}
+      - OTEL_METRICS_EXPORTER=${OTEL_METRICS_EXPORTER:-otlp}
+      - OTEL_TRACES_EXPORTER=${OTEL_TRACES_EXPORTER:-otlp}
+      - OTEL_LOGS_EXPORTER=${OTEL_LOGS_EXPORTER:-none}
+      # Observability: Sentry error tracking
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       - SERVER_PORT=8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
@@ -111,6 +123,18 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY:?RESEND_API_KEY is required}
       - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@staticshop.io}
+      # Observability: Grafana Cloud OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${GRAFANA_CLOUD_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME_WORKERS:-shopbuilder-workers}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES:-deployment.environment=production}
+      - OTEL_METRICS_EXPORTER=${OTEL_METRICS_EXPORTER:-otlp}
+      - OTEL_TRACES_EXPORTER=${OTEL_TRACES_EXPORTER:-otlp}
+      - OTEL_LOGS_EXPORTER=${OTEL_LOGS_EXPORTER:-none}
+      # Observability: Sentry error tracking
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-4}
       - SERVER_PORT=8081
     healthcheck:
