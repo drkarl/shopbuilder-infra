@@ -71,6 +71,8 @@ All services have health checks configured:
 
 Health checks run every 30 seconds with a 10-second timeout and 3 retries.
 
+> **Note**: The Spring service health checks use `curl`. Ensure your Spring Boot Docker images have `curl` installed, or modify the health checks to use an alternative like `wget --spider`.
+
 ## Operations
 
 ### Starting Services
@@ -137,6 +139,30 @@ All services communicate over the `shopbuilder-network` bridge network. Services
 - `rabbitmq` - RabbitMQ broker
 - `shopbuilder-api` - API service (container name)
 - `shopbuilder-workers` - Worker service (container name)
+
+## Production Considerations
+
+### RabbitMQ Management UI
+
+The RabbitMQ management UI is exposed on port 15672 by default. For production environments:
+
+- **Restrict access**: Use a firewall to limit access to internal networks only
+- **Disable if unused**: Remove the `15672:15672` port mapping if the management UI is not needed
+- **Use a reverse proxy**: Place behind an authenticated reverse proxy for secure external access
+
+### Image Pull Policy
+
+For production deployments, consider how images should be pulled:
+
+```yaml
+# Always pull the latest image (ensures updates)
+pull_policy: always
+
+# Only pull if image is missing (deterministic deployments)
+pull_policy: missing
+```
+
+Add `pull_policy` to service definitions in `docker-compose.yml` as needed.
 
 ## Troubleshooting
 
