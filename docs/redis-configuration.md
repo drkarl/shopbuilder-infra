@@ -21,9 +21,8 @@ rediss://default:[password]@[endpoint]:6379
 
 ### Example
 
-<!-- pragma: allowlist secret -->
 ```
-rediss://default:AxxxXXXX@eu1-xxxxx-xxxxx.upstash.io:6379
+rediss://default:AxxxXXXX@eu1-xxxxx-xxxxx.upstash.io:6379  # pragma: allowlist secret
 ```
 
 ## Environment Variables
@@ -60,10 +59,12 @@ public class RedisConfig {
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
             .useSsl()
             .build();
-        return new LettuceConnectionFactory(
-            new RedisStandaloneConfiguration(redisUri.getHost(), redisUri.getPort()),
-            clientConfig
-        );
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(
+            redisUri.getHost(), redisUri.getPort());
+        if (redisUri.getPassword() != null && redisUri.getPassword().length > 0) {
+            redisConfig.setPassword(new String(redisUri.getPassword()));
+        }
+        return new LettuceConnectionFactory(redisConfig, clientConfig);
     }
 }
 ```
@@ -173,17 +174,16 @@ terraform output -raw redis_url
 
 Set these before running Terraform:
 
-<!-- pragma: allowlist secret -->
 ```bash
 export TF_VAR_upstash_email="your-email@example.com"
-export TF_VAR_upstash_api_key="your-api-key"
+export TF_VAR_upstash_api_key="your-api-key"  # pragma: allowlist secret
 ```
 
 Or use a `.tfvars` file (do not commit):
 
 ```hcl
 upstash_email     = "your-email@example.com"
-upstash_api_key   = "your-api-key"
+upstash_api_key   = "your-api-key"  # pragma: allowlist secret
 ```
 
 ## Security

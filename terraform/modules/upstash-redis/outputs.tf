@@ -54,13 +54,13 @@ output "creation_time" {
 
 output "redis_url" {
   description = "Full Redis connection URL with TLS (rediss://). Use this for UPSTASH_REDIS_URL environment variable."
-  value       = "rediss://default:${upstash_redis_database.this.password}@${upstash_redis_database.this.endpoint}:${upstash_redis_database.this.port}"
+  value       = "rediss://default:${urlencode(upstash_redis_database.this.password)}@${upstash_redis_database.this.endpoint}:${upstash_redis_database.this.port}"
   sensitive   = true
 }
 
 output "redis_url_spring" {
   description = "Redis URL formatted for Spring Data Redis (spring.data.redis.url). Currently identical to redis_url but kept separate for semantic clarity and potential future Spring-specific formatting."
-  value       = "rediss://default:${upstash_redis_database.this.password}@${upstash_redis_database.this.endpoint}:${upstash_redis_database.this.port}"
+  value       = "rediss://default:${urlencode(upstash_redis_database.this.password)}@${upstash_redis_database.this.endpoint}:${upstash_redis_database.this.port}"
   sensitive   = true
 }
 
