@@ -88,16 +88,16 @@ The frontend service uses a multi-stage Docker build. The Dockerfile and Nginx c
 
 ### Building the Frontend Image
 
-Build the frontend Docker image with environment variables passed as build arguments:
+Build the frontend Docker image with environment variables passed as build arguments (run from repository root):
 
 ```bash
-cd frontend
 docker build \
+  -f docker/frontend/Dockerfile \
   --build-arg VITE_API_URL=https://api.example.com \
   --build-arg VITE_SUPABASE_URL=https://xxx.supabase.co \
   --build-arg VITE_SUPABASE_ANON_KEY=your-anon-key \
   -t shopbuilder/frontend:latest \
-  .
+  frontend
 ```
 
 ### Build Stages
