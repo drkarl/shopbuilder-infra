@@ -53,6 +53,10 @@ This repository contains all infrastructure definitions, deployment scripts, and
 
 This repository uses SOPS with age encryption for secrets management. See [docs/secrets-management.md](docs/secrets-management.md) for setup instructions and usage.
 
+## Disaster Recovery
+
+For backup procedures, recovery runbooks, and DR drills, see [docs/disaster-recovery.md](docs/disaster-recovery.md).
+
 ## Related Repositories
 
 - [shopbuilder](https://github.com/drkarl/shopbuilder) - Main application repository
