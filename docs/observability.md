@@ -138,7 +138,7 @@ management:
   otlp:
     metrics:
       export:
-        enabled: ${OTEL_METRICS_EXPORTER:otlp}
+        enabled: ${OTEL_METRICS_ENABLED:true}
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:}
 
