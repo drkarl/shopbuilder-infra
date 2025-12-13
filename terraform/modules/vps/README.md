@@ -133,7 +133,7 @@ module "vps" {
 | install_docker | Install Docker on the VPS | `bool` | `true` | no |
 | install_docker_compose | Install Docker Compose on the VPS | `bool` | `true` | no |
 | docker_compose_version | Docker Compose version to install | `string` | `"v2.24.0"` | no |
-| enable_ipv6 | Enable IPv6 on the VPS | `bool` | `true` | no |
+| enable_ipv6 | Enable IPv6 support (controls Cloudflare IPv6 rules in firewall) | `bool` | `true` | no |
 | additional_security_group_rules | Additional security group rules to apply | `list(object)` | `[]` | no |
 | tags | Tags to apply to the VPS instance | `map(string)` | `{}` | no |
 | enable_ovh_firewall | Enable nftables-based firewall for OVH instances | `bool` | `true` | no |

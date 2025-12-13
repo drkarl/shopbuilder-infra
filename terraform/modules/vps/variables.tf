@@ -123,7 +123,7 @@ variable "docker_compose_version" {
 }
 
 variable "enable_ipv6" {
-  description = "Enable IPv6 on the VPS"
+  description = "Enable IPv6 support (controls Cloudflare IPv6 rules in firewall, not instance-level IPv6)"
   type        = bool
   default     = true
 }
