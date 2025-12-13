@@ -116,6 +116,32 @@ EOF
 # SSH Hardening
 echo "Configuring SSH hardening..."
 
+# Ensure the SSH user exists with sudo privileges before disabling root login
+if ! id "${var.hardening_ssh_user}" &>/dev/null; then
+  echo "Creating user ${var.hardening_ssh_user} with sudo privileges..."
+  useradd -m -s /bin/bash "${var.hardening_ssh_user}"
+  usermod -aG sudo "${var.hardening_ssh_user}"
+  # Copy root's authorized_keys to the new user
+  mkdir -p /home/${var.hardening_ssh_user}/.ssh
+  if [ -f /root/.ssh/authorized_keys ]; then
+    cp /root/.ssh/authorized_keys /home/${var.hardening_ssh_user}/.ssh/
+    chown -R ${var.hardening_ssh_user}:${var.hardening_ssh_user} /home/${var.hardening_ssh_user}/.ssh
+    chmod 700 /home/${var.hardening_ssh_user}/.ssh
+    chmod 600 /home/${var.hardening_ssh_user}/.ssh/authorized_keys
+  fi
+  # Allow passwordless sudo for the user
+  echo "${var.hardening_ssh_user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${var.hardening_ssh_user}
+  chmod 440 /etc/sudoers.d/${var.hardening_ssh_user}
+  echo "User ${var.hardening_ssh_user} created with sudo privileges"
+else
+  echo "User ${var.hardening_ssh_user} already exists"
+  # Ensure user has sudo privileges
+  if ! groups "${var.hardening_ssh_user}" | grep -q sudo; then
+    usermod -aG sudo "${var.hardening_ssh_user}"
+    echo "Added ${var.hardening_ssh_user} to sudo group"
+  fi
+fi
+
 # Backup original SSH config
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.original
 
@@ -179,6 +205,34 @@ else
   sshd -t 2>&1  # Log the actual error for debugging
   cp /etc/ssh/sshd_config.original /etc/ssh/sshd_config
 fi
+EOF
+  : ""
+
+  # UFW firewall configuration (needed for fail2ban banaction)
+  ufw_script = var.enable_fail2ban ? <<-EOF
+
+# UFW Firewall Configuration
+echo "Configuring UFW firewall..."
+
+# Install UFW if not present
+if ! command -v ufw &> /dev/null; then
+  apt-get install -y ufw
+fi
+
+# Set default policies
+ufw default deny incoming
+ufw default allow outgoing
+
+# Allow SSH on the configured port
+ufw allow ${var.hardening_ssh_port}/tcp comment "SSH"
+
+# Allow HTTP/HTTPS
+ufw allow 80/tcp comment "HTTP"
+ufw allow 443/tcp comment "HTTPS"
+
+# Enable UFW (non-interactive)
+ufw --force enable
+echo "UFW firewall configured and enabled"
 EOF
   : ""
 
@@ -315,6 +369,14 @@ cat > /etc/logrotate.d/app-logs << 'LRCONF'
     delaycompress
     notifempty
     create 0640 root adm
+    sharedscripts
+    postrotate
+        if [ -x /usr/lib/rsyslog/rsyslog-rotate ]; then
+            /usr/lib/rsyslog/rsyslog-rotate
+        elif command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet rsyslog; then
+            systemctl reload rsyslog
+        fi
+    endscript
 }
 LRCONF
 
@@ -325,6 +387,7 @@ EOF
   # Combined hardening script
   hardening_script = var.enable_hardening ? join("\n", compact([
     local.ssh_hardening_script,
+    local.ufw_script,
     local.fail2ban_script,
     local.unattended_upgrades_script,
     local.docker_hardening_script,
