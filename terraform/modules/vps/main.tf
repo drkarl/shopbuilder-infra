@@ -11,7 +11,7 @@ terraform {
     }
     ovh = {
       source  = "ovh/ovh"
-      version = "~> 0.40"
+      version = ">= 0.40"
     }
   }
 }
@@ -332,8 +332,6 @@ resource "scaleway_instance_server" "this" {
 
   ip_id             = scaleway_instance_ip.this[0].id
   security_group_id = scaleway_instance_security_group.this[0].id
-
-  enable_ipv6 = var.enable_ipv6
 
   user_data = {
     cloud-init = local.user_data
