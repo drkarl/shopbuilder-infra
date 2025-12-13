@@ -9,7 +9,7 @@ variable "zone_name" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment name (dev, staging, prod). Reserved for future use in record comments or tags."
   type        = string
 
   validation {
@@ -157,17 +157,3 @@ variable "custom_records" {
   }
 }
 
-#------------------------------------------------------------------------------
-# Legacy Variables (for backwards compatibility)
-#------------------------------------------------------------------------------
-
-variable "records" {
-  description = "DEPRECATED: Use api_record, frontend_record, marketing_record, or custom_records instead"
-  type = list(object({
-    name  = string
-    type  = string
-    ttl   = number
-    value = string
-  }))
-  default = []
-}
