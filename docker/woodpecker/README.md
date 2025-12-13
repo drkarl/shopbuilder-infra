@@ -72,7 +72,7 @@ This configuration deploys:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WOODPECKER_VERSION` | `latest` | Docker image version |
+| `WOODPECKER_VERSION` | `2.7.0` | Docker image version (pin for reproducibility) |
 | `WOODPECKER_OPEN` | `false` | Allow public registration |
 | `WOODPECKER_ADMIN` | - | Comma-separated admin usernames |
 | `WOODPECKER_LOG_LEVEL` | `info` | Logging verbosity |
@@ -113,7 +113,7 @@ For distributed deployments, run agents on separate hosts:
    ```yaml
    services:
      woodpecker-agent:
-       image: woodpeckerci/woodpecker-agent:${WOODPECKER_VERSION:-latest}
+       image: woodpeckerci/woodpecker-agent:${WOODPECKER_VERSION:-2.7.0}
        restart: unless-stopped
        environment:
          - WOODPECKER_SERVER=${WOODPECKER_SERVER_ADDRESS}:9000
@@ -167,7 +167,7 @@ Recommended for production:
 
 ```bash
 WOODPECKER_DATABASE_DRIVER=postgres
-WOODPECKER_DATABASE_DATASOURCE=postgres://user:password@host:5432/woodpecker?sslmode=require
+WOODPECKER_DATABASE_DATASOURCE=postgres://user:password@host:5432/woodpecker?sslmode=require  # pragma: allowlist secret
 ```
 
 ## Health Checks
@@ -278,7 +278,11 @@ Woodpecker exposes Prometheus metrics:
 Monitor resource usage:
 
 ```bash
+# For single agent setup
 docker stats woodpecker-server woodpecker-agent
+
+# For scaled agents (shows all containers in the stack)
+docker stats $(docker compose ps -q)
 ```
 
 ## Troubleshooting
