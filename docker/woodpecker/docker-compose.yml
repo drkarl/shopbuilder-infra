@@ -1,0 +1,119 @@
+# Woodpecker CI Docker Compose Configuration
+# Deploys Woodpecker server and build agents for CI/CD pipelines
+#
+# Usage:
+#   cp .env.example .env
+#   # Edit .env with your configuration
+#   docker compose up -d
+#
+# For production, use SOPS to manage secrets:
+#   sops exec-env ../../secrets/production.enc.yaml 'docker compose up -d'
+
+services:
+  # Woodpecker CI Server
+  # Manages pipelines, repositories, and coordinates agents
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:${WOODPECKER_VERSION:-latest}
+    container_name: woodpecker-server
+    restart: unless-stopped
+    ports:
+      - "${WOODPECKER_HTTP_PORT:-8000}:8000"
+      - "${WOODPECKER_GRPC_PORT:-9000}:9000"
+    environment:
+      # Server configuration
+      - WOODPECKER_OPEN=${WOODPECKER_OPEN:-false}
+      - WOODPECKER_HOST=${WOODPECKER_HOST:?WOODPECKER_HOST is required}
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN:-}
+      # Agent authentication secret (shared with agents)
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?WOODPECKER_AGENT_SECRET is required}
+      # GitHub integration
+      - WOODPECKER_GITHUB=${WOODPECKER_GITHUB:-true}
+      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT:?WOODPECKER_GITHUB_CLIENT is required}
+      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET:?WOODPECKER_GITHUB_SECRET is required}
+      # Database (SQLite by default, PostgreSQL for production)
+      - WOODPECKER_DATABASE_DRIVER=${WOODPECKER_DATABASE_DRIVER:-sqlite3}
+      - WOODPECKER_DATABASE_DATASOURCE=${WOODPECKER_DATABASE_DATASOURCE:-/var/lib/woodpecker/woodpecker.sqlite}
+      # Logging
+      - WOODPECKER_LOG_LEVEL=${WOODPECKER_LOG_LEVEL:-info}
+    volumes:
+      - woodpecker-server-data:/var/lib/woodpecker
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "${WOODPECKER_SERVER_CPU_LIMIT:-1.0}"
+          memory: ${WOODPECKER_SERVER_MEMORY_LIMIT:-512M}
+        reservations:
+          cpus: "${WOODPECKER_SERVER_CPU_RESERVATION:-0.25}"
+          memory: ${WOODPECKER_SERVER_MEMORY_RESERVATION:-128M}
+    networks:
+      - woodpecker-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Woodpecker CI Agent
+  # Executes pipeline steps (Docker-based builds)
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:${WOODPECKER_VERSION:-latest}
+    container_name: woodpecker-agent
+    restart: unless-stopped
+    environment:
+      # Connect to server via gRPC
+      - WOODPECKER_SERVER=${WOODPECKER_SERVER:-woodpecker-server:9000}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?WOODPECKER_AGENT_SECRET is required}
+      # Agent identification
+      - WOODPECKER_HOSTNAME=${WOODPECKER_AGENT_HOSTNAME:-agent-1}
+      # Build execution limits
+      - WOODPECKER_MAX_WORKFLOWS=${WOODPECKER_MAX_WORKFLOWS:-1}
+      # Backend configuration (Docker)
+      - WOODPECKER_BACKEND=docker
+      # Logging
+      - WOODPECKER_LOG_LEVEL=${WOODPECKER_LOG_LEVEL:-info}
+    volumes:
+      # Docker socket for running pipeline containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Workspace cache for faster builds
+      - woodpecker-agent-cache:/woodpecker/cache
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "${WOODPECKER_AGENT_CPU_LIMIT:-2.0}"
+          memory: ${WOODPECKER_AGENT_MEMORY_LIMIT:-4G}
+        reservations:
+          cpus: "${WOODPECKER_AGENT_CPU_RESERVATION:-0.5}"
+          memory: ${WOODPECKER_AGENT_MEMORY_RESERVATION:-512M}
+    networks:
+      - woodpecker-network
+    depends_on:
+      woodpecker-server:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  woodpecker-network:
+    driver: bridge
+    name: woodpecker-network
+
+volumes:
+  woodpecker-server-data:
+    name: woodpecker-server-data
+  woodpecker-agent-cache:
+    name: woodpecker-agent-cache
