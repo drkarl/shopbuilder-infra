@@ -131,11 +131,24 @@ public class StripeWebhookController {
             return ResponseEntity.status(400).body("Invalid signature");
         }
 
-        switch (event.getType()) {
-            case "payment_intent.succeeded" -> handlePaymentSucceeded(event);
-            case "payment_intent.payment_failed" -> handlePaymentFailed(event);
-            case "checkout.session.completed" -> handleCheckoutCompleted(event);
-            default -> log.info("Unhandled event type: {}", event.getType());
+        try {
+            switch (event.getType()) {
+                case "payment_intent.succeeded":
+                    handlePaymentSucceeded(event);
+                    break;
+                case "payment_intent.payment_failed":
+                    handlePaymentFailed(event);
+                    break;
+                case "checkout.session.completed":
+                    handleCheckoutCompleted(event);
+                    break;
+                default:
+                    log.info("Unhandled event type: {}", event.getType());
+                    break;
+            }
+        } catch (Exception e) {
+            log.error("Error processing Stripe webhook event: {}", event.getType(), e);
+            // Always return 200 to Stripe to prevent retries, but log the error for investigation
         }
 
         return ResponseEntity.ok("Success");
@@ -197,6 +210,7 @@ stripe trigger payment_intent.succeeded
 3. **Use HTTPS** - All webhook endpoints must use TLS
 4. **Store secrets securely** - Use SOPS encryption, never commit plaintext
 5. **Limit retry attempts** - Stripe retries failed webhooks for up to 3 days
+6. **Implement idempotency in webhook handlers** - Webhook handlers must be idempotent to avoid duplicate processing. Store processed webhook event IDs (e.g., in a database) and skip events that have already been processed. This prevents duplicate order fulfillment or other side effects if Stripe retries the same event.
 
 ## Monitoring
 
