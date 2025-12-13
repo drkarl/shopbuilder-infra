@@ -17,7 +17,7 @@ This ensures secrets are both securely stored in version control and available a
 |-------------|-------------|-------|----------|
 | `cloudflare_api_token` | Cloudflare API access for DNS, Pages, R2 | Global | Yes |
 | `cloudflare_account_id` | Cloudflare account identifier | Global | Yes |
-| `shop_builder_api_token` | API callback authentication for build status | Global | Yes |
+| `shop_builder_api_token` | API callback authentication for build status | Repository | Yes |
 | `docker_registry_token` | Private container registry access | Global | Optional |
 | `sops_age_key` | Age private key for decrypting SOPS secrets | Global | Yes |
 
@@ -76,21 +76,30 @@ woodpecker-cli secret add \
 
 ### Adding Secrets from SOPS
 
-Use this workflow to sync secrets from SOPS to Woodpecker:
+Use this workflow to sync secrets from SOPS to Woodpecker. Note that SOPS files use `SCREAMING_SNAKE_CASE` for variable names, while Woodpecker secret names use `lowercase_with_underscores`. Woodpecker automatically converts secret names to uppercase environment variables at runtime.
 
 ```bash
-# 1. Decrypt SOPS secrets
+# 1. Decrypt SOPS secrets using yq (handles multi-line values safely)
 export SOPS_AGE_KEY_FILE=keys/production.age.key
-eval $(sops -d secrets/production.enc.yaml | sed 's/: /=/' | xargs -I{} echo "export {}")
+sops -d secrets/production.enc.yaml > /tmp/secrets.yaml
 
-# 2. Add secrets to Woodpecker (global scope)
+# 2. Extract individual secrets using yq
+CLOUDFLARE_API_TOKEN=$(yq '.CLOUDFLARE_API_TOKEN' /tmp/secrets.yaml)
+CLOUDFLARE_ACCOUNT_ID=$(yq '.CLOUDFLARE_ACCOUNT_ID' /tmp/secrets.yaml)
+SHOP_BUILDER_API_TOKEN=$(yq '.SHOP_BUILDER_API_TOKEN' /tmp/secrets.yaml)
+
+# 3. Add secrets to Woodpecker (global scope)
 woodpecker-cli secret add --global --name cloudflare_api_token --value "${CLOUDFLARE_API_TOKEN}"
 woodpecker-cli secret add --global --name cloudflare_account_id --value "${CLOUDFLARE_ACCOUNT_ID}"
-woodpecker-cli secret add --global --name sops_age_key --value "${SOPS_AGE_KEY}"
 
-# 3. Add repository-specific secrets
+# 4. Add repository-specific secrets
 woodpecker-cli secret add --repository drkarl/shop-builder --name shop_builder_api_token --value "${SHOP_BUILDER_API_TOKEN}"
+
+# 5. Clean up
+rm -f /tmp/secrets.yaml
 ```
+
+> **Note**: The `sops_age_key` secret requires special handling due to its multi-line format. See the "Individual Secret Commands" section below.
 
 ### Individual Secret Commands
 
@@ -120,6 +129,7 @@ woodpecker-cli secret add \
   --value "${DOCKER_REGISTRY_TOKEN}"
 
 # SOPS Age Key (for decrypting secrets in pipelines)
+# Note: Read directly from the key file to preserve multi-line format
 woodpecker-cli secret add \
   --global \
   --name sops_age_key \
@@ -151,9 +161,9 @@ steps:
     image: mozilla/sops:v3.9.0-alpine
     secrets: [sops_age_key]
     commands:
-      # Create temporary key file
+      # Create temporary key file and set up cleanup for both key and decrypted secrets
       - KEY_FILE=$(mktemp)
-      - trap 'rm -f "$KEY_FILE"' EXIT
+      - trap 'rm -f "$KEY_FILE" .env' EXIT
       - echo "$SOPS_AGE_KEY" > "$KEY_FILE"
       - export SOPS_AGE_KEY_FILE="$KEY_FILE"
 
@@ -190,13 +200,13 @@ steps:
     commands:
       - apk add --no-cache curl
       - |
-        # Deploy to Cloudflare Pages
-        curl -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/shop-builder/deployments" \
+        # Deploy to Cloudflare Pages (--fail exits non-zero on HTTP errors)
+        curl --fail -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/shop-builder/deployments" \
           -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
           -F "branch=staging"
       - |
         # Notify Shop Builder API
-        curl -X POST "https://api.shop-builder.example/webhooks/deploy" \
+        curl --fail -X POST "https://api.shop-builder.example/webhooks/deploy" \
           -H "Authorization: Bearer ${SHOP_BUILDER_API_TOKEN}" \
           -d '{"status": "deployed", "environment": "staging"}'
     when:
@@ -208,11 +218,13 @@ steps:
     commands:
       - apk add --no-cache curl
       - |
-        curl -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/shop-builder/deployments" \
+        # Deploy to Cloudflare Pages (--fail exits non-zero on HTTP errors)
+        curl --fail -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/shop-builder/deployments" \
           -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
           -F "branch=main"
       - |
-        curl -X POST "https://api.shop-builder.example/webhooks/deploy" \
+        # Notify Shop Builder API
+        curl --fail -X POST "https://api.shop-builder.example/webhooks/deploy" \
           -H "Authorization: Bearer ${SHOP_BUILDER_API_TOKEN}" \
           -d '{"status": "deployed", "environment": "production"}'
     when:
