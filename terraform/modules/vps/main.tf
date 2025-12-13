@@ -97,11 +97,33 @@ locals {
   EOF
 
   docker_compose_install_script = <<-EOF
-    # Install Docker Compose standalone (in addition to plugin)
+    # Install Docker Compose standalone (in addition to plugin) with checksum verification
     DOCKER_COMPOSE_VERSION="${var.docker_compose_version}"
-    curl -SL "https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
+    ARCH=$(uname -m)
+    COMPOSE_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/docker-compose-linux-$${ARCH}"
+    CHECKSUM_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/checksums.txt"
+
+    # Download binary and checksums
+    curl -SL "$${COMPOSE_URL}" -o /tmp/docker-compose
+    curl -SL "$${CHECKSUM_URL}" -o /tmp/checksums.txt
+
+    # Verify checksum
+    EXPECTED_CHECKSUM=$(grep "docker-compose-linux-$${ARCH}$" /tmp/checksums.txt | awk '{print $1}')
+    ACTUAL_CHECKSUM=$(sha256sum /tmp/docker-compose | awk '{print $1}')
+
+    if [ "$${EXPECTED_CHECKSUM}" != "$${ACTUAL_CHECKSUM}" ]; then
+      echo "ERROR: Docker Compose checksum verification failed!"
+      echo "Expected: $${EXPECTED_CHECKSUM}"
+      echo "Actual: $${ACTUAL_CHECKSUM}"
+      rm -f /tmp/docker-compose /tmp/checksums.txt
+      exit 1
+    fi
+
+    echo "Docker Compose checksum verified successfully"
+    mv /tmp/docker-compose /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
     ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    rm -f /tmp/checksums.txt
   EOF
 
   # Final user data - empty string if no Docker install needed
@@ -238,9 +260,9 @@ resource "scaleway_instance_security_group" "this" {
     }
   }
 
-  # Additional custom rules
+  # Additional custom rules (with single port)
   dynamic "inbound_rule" {
-    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "inbound"]
+    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "inbound" && rule.port != null]
     content {
       action   = "accept"
       protocol = upper(inbound_rule.value.protocol)
@@ -249,13 +271,34 @@ resource "scaleway_instance_security_group" "this" {
     }
   }
 
+  # Additional custom rules (with port range)
+  dynamic "inbound_rule" {
+    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "inbound" && rule.port == null && rule.port_range != null]
+    content {
+      action     = "accept"
+      protocol   = upper(inbound_rule.value.protocol)
+      port_range = inbound_rule.value.port_range
+      ip_range   = inbound_rule.value.ip_range != null ? inbound_rule.value.ip_range : "0.0.0.0/0"
+    }
+  }
+
   dynamic "outbound_rule" {
-    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "outbound"]
+    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "outbound" && rule.port != null]
     content {
       action   = "accept"
       protocol = upper(outbound_rule.value.protocol)
       port     = outbound_rule.value.port
       ip_range = outbound_rule.value.ip_range != null ? outbound_rule.value.ip_range : "0.0.0.0/0"
+    }
+  }
+
+  dynamic "outbound_rule" {
+    for_each = [for rule in var.additional_security_group_rules : rule if rule.direction == "outbound" && rule.port == null && rule.port_range != null]
+    content {
+      action     = "accept"
+      protocol   = upper(outbound_rule.value.protocol)
+      port_range = outbound_rule.value.port_range
+      ip_range   = outbound_rule.value.ip_range != null ? outbound_rule.value.ip_range : "0.0.0.0/0"
     }
   }
 }
@@ -281,6 +324,13 @@ resource "scaleway_instance_server" "this" {
   tags = [for k, v in local.common_tags : "${k}=${v}"]
 
   depends_on = [scaleway_iam_ssh_key.this]
+
+  lifecycle {
+    precondition {
+      condition     = var.zone != null
+      error_message = "The 'zone' variable is required when provider_type is 'scaleway'."
+    }
+  }
 }
 
 # Scaleway Public IP
@@ -329,6 +379,17 @@ resource "ovh_cloud_project_instance" "this" {
   user_data = local.ovh_user_data
 
   depends_on = [ovh_me_ssh_key.this]
+
+  lifecycle {
+    precondition {
+      condition     = var.ovh_cloud_project_id != null
+      error_message = "The 'ovh_cloud_project_id' variable is required when provider_type is 'ovh'."
+    }
+    precondition {
+      condition     = var.ovh_image_id != null
+      error_message = "The 'ovh_image_id' variable is required when provider_type is 'ovh'."
+    }
+  }
 }
 
 # Note: OVH instances don't have built-in security groups like Scaleway
