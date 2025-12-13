@@ -96,6 +96,28 @@ SENTRY_ENVIRONMENT=production
 SENTRY_TRACES_SAMPLE_RATE=0.1
 ```
 
+## Disabling Observability
+
+If you don't want to use Grafana Cloud for metrics/traces, you must explicitly disable the OTLP exporters to avoid connection errors in the application logs.
+
+In your `.env` file, set:
+
+```bash
+# Disable OTLP export when not using Grafana Cloud
+OTEL_METRICS_EXPORTER=none
+OTEL_TRACES_EXPORTER=none
+GRAFANA_CLOUD_OTLP_ENDPOINT=
+OTEL_EXPORTER_OTLP_HEADERS=
+```
+
+Similarly, to disable Sentry error tracking:
+
+```bash
+SENTRY_DSN=
+```
+
+When disabled, the Spring applications will start without observability features and no export errors will be logged.
+
 ## Spring Boot Application Configuration
 
 The Spring Boot application should be configured to use the OpenTelemetry environment variables. Add these dependencies to your `build.gradle`:
