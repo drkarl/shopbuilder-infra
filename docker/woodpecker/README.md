@@ -255,7 +255,11 @@ Required ports:
 | Port | Protocol | Direction | Purpose |
 |------|----------|-----------|---------|
 | 8000 | TCP | Inbound | Web UI and API |
-| 9000 | TCP | Internal | Agent gRPC (server to agents) |
+| 9000 | TCP | Internal/Inbound | Agent gRPC (see below) |
+
+**gRPC Port (9000) Exposure:**
+- **Same-host agents**: When agents run in the same Docker Compose stack, they connect via the internal `woodpecker-network` using service names (e.g., `woodpecker-server:9000`). External port exposure is not required.
+- **Distributed agents**: When running agents on separate hosts, expose port 9000 to allow remote agents to connect. In this case, ensure the port is protected by firewall rules or VPN.
 
 ## Monitoring
 
