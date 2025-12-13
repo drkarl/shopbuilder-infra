@@ -1,6 +1,6 @@
 # VPS Module
 
-Reusable Terraform module for provisioning EU-based VPS instances on Scaleway or OVH.
+Reusable Terraform module for provisioning VPS instances on Scaleway or OVH.
 
 ## Features
 
@@ -125,7 +125,7 @@ module "vps" {
 | image | OS image to use for the VPS | `string` | `"ubuntu_jammy"` | no |
 | ssh_key_name | Name for the SSH key resource | `string` | `null` | no |
 | ssh_user | SSH username for the VPS | `string` | `"root"` | no |
-| ssh_allowed_ips | List of IP addresses/CIDR blocks allowed to SSH | `list(string)` | `[]` | no |
+| ssh_allowed_ips | List of CIDR blocks allowed to SSH (use /32 for single IPs) | `list(string)` | `[]` | no |
 | enable_cloudflare_only | Restrict HTTP/HTTPS access to Cloudflare IPs only | `bool` | `true` | no |
 | additional_http_allowed_ips | Additional IP addresses for HTTP/HTTPS beyond Cloudflare | `list(string)` | `[]` | no |
 | install_docker | Install Docker on the VPS | `bool` | `true` | no |

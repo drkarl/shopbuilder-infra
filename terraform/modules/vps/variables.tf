@@ -75,15 +75,15 @@ variable "ssh_user" {
 }
 
 variable "ssh_allowed_ips" {
-  description = "List of IP addresses/CIDR blocks allowed to SSH (leave empty for all)"
+  description = "List of CIDR blocks allowed to SSH (leave empty for all). Use /32 for single IPs."
   type        = list(string)
   default     = []
 
   validation {
     condition = alltrue([
-      for ip in var.ssh_allowed_ips : can(cidrhost(ip, 0)) || can(regex("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$", ip))
+      for ip in var.ssh_allowed_ips : can(cidrhost(ip, 0))
     ])
-    error_message = "Each SSH allowed IP must be a valid IP address or CIDR block."
+    error_message = "Each SSH allowed IP must be a valid CIDR block (e.g., 10.0.0.1/32 for single IP, 10.0.0.0/24 for range)."
   }
 }
 
