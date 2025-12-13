@@ -95,7 +95,7 @@ resource "cloudflare_record" "marketing" {
 #------------------------------------------------------------------------------
 
 resource "cloudflare_record" "custom" {
-  for_each = { for idx, record in var.custom_records : record.name => record }
+  for_each = { for idx, record in var.custom_records : "${record.name}-${record.type}-${idx}" => record }
 
   zone_id  = data.cloudflare_zone.this.id
   name     = each.value.name
