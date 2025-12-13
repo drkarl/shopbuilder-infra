@@ -140,12 +140,12 @@ variable "email_records" {
     })), [])
     # DMARC record - policy for handling authentication failures
     dmarc = optional(object({
-      policy        = optional(string, "none") # none, quarantine, reject
-      rua           = optional(string)         # Aggregate report email (mailto:...)
-      ruf           = optional(string)         # Forensic report email (mailto:...)
-      pct           = optional(number, 100)    # Percentage of messages to apply policy
-      ttl           = optional(number, 300)
-      custom_value  = optional(string)         # Override with custom DMARC value
+      policy       = optional(string, "none") # none, quarantine, reject
+      rua          = optional(string)         # Aggregate report email (mailto:...)
+      ruf          = optional(string)         # Forensic report email (mailto:...)
+      pct          = optional(number, 100)    # Percentage of messages to apply policy
+      ttl          = optional(number, 300)
+      custom_value = optional(string) # Override with custom DMARC value
     }))
   })
   default = null
@@ -169,6 +169,38 @@ variable "email_records" {
       var.email_records.dmarc.pct >= 0 && var.email_records.dmarc.pct <= 100
     )
     error_message = "DMARC percentage must be between 0 and 100."
+  }
+
+  validation {
+    condition = (
+      var.email_records == null ||
+      var.email_records.spf == null ||
+      var.email_records.spf.ttl == null ||
+      (var.email_records.spf.ttl >= 1 && var.email_records.spf.ttl <= 86400)
+    )
+    error_message = "SPF TTL must be between 1 and 86400 seconds."
+  }
+
+  validation {
+    condition = (
+      var.email_records == null ||
+      var.email_records.dkim == null ||
+      length([
+        for d in var.email_records.dkim : d
+        if d.ttl != null && (d.ttl < 1 || d.ttl > 86400)
+      ]) == 0
+    )
+    error_message = "Each DKIM TTL must be between 1 and 86400 seconds."
+  }
+
+  validation {
+    condition = (
+      var.email_records == null ||
+      var.email_records.dmarc == null ||
+      var.email_records.dmarc.ttl == null ||
+      (var.email_records.dmarc.ttl >= 1 && var.email_records.dmarc.ttl <= 86400)
+    )
+    error_message = "DMARC TTL must be between 1 and 86400 seconds."
   }
 }
 
