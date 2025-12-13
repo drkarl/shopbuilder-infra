@@ -17,6 +17,10 @@ terraform {
 }
 
 locals {
+  # Validation: hardening_ssh_user cannot be 'root' when enable_hardening is true
+  # because SSH hardening disables root login (PermitRootLogin no)
+  _validate_ssh_user = var.enable_hardening && var.hardening_ssh_user == "root" ? tobool("ERROR: hardening_ssh_user cannot be 'root' when enable_hardening is true. SSH hardening disables root login, which would lock you out. Use a non-root user like 'deploy'.") : true
+
   ssh_key_name = var.ssh_key_name != null ? var.ssh_key_name : "${var.name}-ssh-key"
 
   # Cloudflare IPv4 ranges (https://www.cloudflare.com/ips-v4)
@@ -167,11 +171,12 @@ MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
 SSHCONF
 
 # Validate and restart SSH
-if sshd -t; then
+if sshd -t 2>&1; then
   systemctl restart sshd
   echo "SSH hardening complete"
 else
   echo "SSH config validation failed, restoring original"
+  sshd -t 2>&1  # Log the actual error for debugging
   cp /etc/ssh/sshd_config.original /etc/ssh/sshd_config
 fi
 EOF
@@ -287,7 +292,9 @@ cat > /etc/docker/daemon.json << 'DOCKERCONF'
 }
 DOCKERCONF
 
-echo "Docker daemon hardening configured (will apply on Docker restart)"
+# Restart Docker to apply the new daemon configuration
+systemctl restart docker
+echo "Docker daemon hardening configured and applied"
 EOF
   : ""
 
@@ -327,19 +334,20 @@ EOF
   # User data script for Docker installation
   docker_install_script_content = <<-EOF
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Update system
 apt-get update
 apt-get upgrade -y
 
-# Install prerequisites
+# Install prerequisites (including ufw for fail2ban integration)
 apt-get install -y \
   apt-transport-https \
   ca-certificates \
   curl \
   gnupg \
-  lsb-release
+  lsb-release \
+  ufw
 
 # Add Docker's official GPG key
 install -m 0755 -d /etc/apt/keyrings
@@ -368,7 +376,7 @@ EOF
   # Base system setup script (when Docker is not installed)
   base_setup_script = <<-EOF
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Update system
 apt-get update
@@ -409,7 +417,7 @@ EOF
   # This provides equivalent protection to Scaleway's security groups
   ovh_firewall_script_content = <<-EOF
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Install nftables if not present
 apt-get update

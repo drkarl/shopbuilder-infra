@@ -215,9 +215,9 @@ variable "hardening_ssh_port" {
 }
 
 variable "hardening_ssh_user" {
-  description = "SSH user to allow (should match the user configured on the instance)"
+  description = "SSH user to allow (should match the user configured on the instance). Cannot be 'root' when hardening is enabled since PermitRootLogin is disabled."
   type        = string
-  default     = "root"
+  default     = "deploy"
 
   validation {
     condition     = can(regex("^[a-z_][a-z0-9_-]*$", var.hardening_ssh_user))
