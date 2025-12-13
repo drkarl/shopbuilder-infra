@@ -362,12 +362,14 @@ resource "scaleway_instance_ip" "this" {
 # Here we implement using OVH Cloud (Public Cloud) instances
 #------------------------------------------------------------------------------
 
-# OVH Account-level SSH Key
-resource "ovh_me_ssh_key" "this" {
+# OVH Cloud Project SSH Key
+resource "ovh_cloud_project_ssh_key" "this" {
   count = var.provider_type == "ovh" ? 1 : 0
 
-  key_name = local.ssh_key_name
-  key      = var.ssh_public_key
+  service_name = var.ovh_cloud_project_id
+  name         = local.ssh_key_name
+  public_key   = var.ssh_public_key
+  region       = var.region
 }
 
 # OVH Cloud Project Instance
@@ -380,7 +382,7 @@ resource "ovh_cloud_project_instance" "this" {
   region       = var.region
 
   # Use the SSH key
-  ssh_key = ovh_me_ssh_key.this[0].key_name
+  ssh_key = ovh_cloud_project_ssh_key.this[0].name
 
   # Boot from image
   boot_from {
@@ -394,7 +396,7 @@ resource "ovh_cloud_project_instance" "this" {
   # Cloud-init user data (includes firewall setup and Docker installation)
   user_data = local.ovh_user_data
 
-  depends_on = [ovh_me_ssh_key.this]
+  depends_on = [ovh_cloud_project_ssh_key.this]
 
   lifecycle {
     precondition {

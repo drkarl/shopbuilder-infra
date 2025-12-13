@@ -19,7 +19,7 @@ output "public_ip" {
 output "private_ip" {
   description = "Private IP address of the VPS instance"
   value = var.provider_type == "scaleway" ? (
-    length(scaleway_instance_server.this) > 0 ? scaleway_instance_server.this[0].private_ip : null
+    length(scaleway_instance_server.this) > 0 ? try(scaleway_instance_server.this[0].private_ips[0], null) : null
   ) : null # OVH Cloud instances may not have private IPs without vRack
 }
 
@@ -46,7 +46,7 @@ output "ssh_key_id" {
   value = var.provider_type == "scaleway" ? (
     length(scaleway_iam_ssh_key.this) > 0 ? scaleway_iam_ssh_key.this[0].id : null
     ) : (
-    length(ovh_me_ssh_key.this) > 0 ? ovh_me_ssh_key.this[0].key_name : null
+    length(ovh_cloud_project_ssh_key.this) > 0 ? ovh_cloud_project_ssh_key.this[0].id : null
   )
 }
 
