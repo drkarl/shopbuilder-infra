@@ -57,77 +57,81 @@ locals {
     Module      = "vps"
   })
 
-  # User data script for Docker installation
-  docker_install_script = var.install_docker ? <<-EOF
-    #!/bin/bash
-    set -e
-
-    # Update system
-    apt-get update
-    apt-get upgrade -y
-
-    # Install prerequisites
-    apt-get install -y \
-      apt-transport-https \
-      ca-certificates \
-      curl \
-      gnupg \
-      lsb-release
-
-    # Add Docker's official GPG key
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    chmod a+r /etc/apt/keyrings/docker.asc
-
-    # Add Docker repository
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    # Install Docker
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-    # Enable and start Docker
-    systemctl enable docker
-    systemctl start docker
-
-    ${var.install_docker_compose ? local.docker_compose_install_script : ""}
-  EOF
-
+  # Docker Compose installation script with checksum verification
   docker_compose_install_script = <<-EOF
-    # Install Docker Compose standalone (in addition to plugin) with checksum verification
-    DOCKER_COMPOSE_VERSION="${var.docker_compose_version}"
-    ARCH=$(uname -m)
-    COMPOSE_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/docker-compose-linux-$${ARCH}"
-    CHECKSUM_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/checksums.txt"
+# Install Docker Compose standalone (in addition to plugin) with checksum verification
+DOCKER_COMPOSE_VERSION="${var.docker_compose_version}"
+ARCH=$(uname -m)
+COMPOSE_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/docker-compose-linux-$${ARCH}"
+CHECKSUM_URL="https://github.com/docker/compose/releases/download/$${DOCKER_COMPOSE_VERSION}/checksums.txt"
 
-    # Download binary and checksums
-    curl -SL "$${COMPOSE_URL}" -o /tmp/docker-compose
-    curl -SL "$${CHECKSUM_URL}" -o /tmp/checksums.txt
+# Download binary and checksums
+curl -SL "$${COMPOSE_URL}" -o /tmp/docker-compose
+curl -SL "$${CHECKSUM_URL}" -o /tmp/checksums.txt
 
-    # Verify checksum
-    EXPECTED_CHECKSUM=$(grep "docker-compose-linux-$${ARCH}$" /tmp/checksums.txt | awk '{print $1}')
-    ACTUAL_CHECKSUM=$(sha256sum /tmp/docker-compose | awk '{print $1}')
+# Verify checksum
+EXPECTED_CHECKSUM=$(grep "docker-compose-linux-$${ARCH}$" /tmp/checksums.txt | awk '{print $1}')
+ACTUAL_CHECKSUM=$(sha256sum /tmp/docker-compose | awk '{print $1}')
 
-    if [ "$${EXPECTED_CHECKSUM}" != "$${ACTUAL_CHECKSUM}" ]; then
-      echo "ERROR: Docker Compose checksum verification failed!"
-      echo "Expected: $${EXPECTED_CHECKSUM}"
-      echo "Actual: $${ACTUAL_CHECKSUM}"
-      rm -f /tmp/docker-compose /tmp/checksums.txt
-      exit 1
-    fi
+if [ "$${EXPECTED_CHECKSUM}" != "$${ACTUAL_CHECKSUM}" ]; then
+  echo "ERROR: Docker Compose checksum verification failed!"
+  echo "Expected: $${EXPECTED_CHECKSUM}"
+  echo "Actual: $${ACTUAL_CHECKSUM}"
+  rm -f /tmp/docker-compose /tmp/checksums.txt
+  exit 1
+fi
 
-    echo "Docker Compose checksum verified successfully"
-    mv /tmp/docker-compose /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    rm -f /tmp/checksums.txt
-  EOF
+echo "Docker Compose checksum verified successfully"
+mv /tmp/docker-compose /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+rm -f /tmp/checksums.txt
+EOF
+
+  # Docker compose script inclusion (empty if not installing)
+  docker_compose_section = var.install_docker_compose ? local.docker_compose_install_script : ""
+
+  # User data script for Docker installation
+  docker_install_script_content = <<-EOF
+#!/bin/bash
+set -e
+
+# Update system
+apt-get update
+apt-get upgrade -y
+
+# Install prerequisites
+apt-get install -y \
+  apt-transport-https \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release
+
+# Add Docker's official GPG key
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Enable and start Docker
+systemctl enable docker
+systemctl start docker
+
+${local.docker_compose_section}
+EOF
 
   # Final user data - empty string if no Docker install needed
-  user_data = var.install_docker ? local.docker_install_script : ""
+  user_data = var.install_docker ? local.docker_install_script_content : ""
 
   # SSH rules for nftables (OVH firewall)
   nftables_ssh_rules = join("\n    ", [for ip in local.ssh_allowed_ips : "ip saddr ${ip} tcp dport 22 accept"])
@@ -147,62 +151,65 @@ locals {
 
   # OVH firewall script using nftables (since OVH doesn't have native security groups)
   # This provides equivalent protection to Scaleway's security groups
-  ovh_firewall_script = var.enable_ovh_firewall ? <<-EOF
-    #!/bin/bash
-    set -e
+  ovh_firewall_script_content = <<-EOF
+#!/bin/bash
+set -e
 
-    # Install nftables if not present
-    apt-get update
-    apt-get install -y nftables
+# Install nftables if not present
+apt-get update
+apt-get install -y nftables
 
-    # Create nftables configuration
-    cat > /etc/nftables.conf << 'NFTCONF'
-    #!/usr/sbin/nft -f
+# Create nftables configuration
+cat > /etc/nftables.conf << 'NFTCONF'
+#!/usr/sbin/nft -f
 
-    flush ruleset
+flush ruleset
 
-    table inet filter {
-      chain input {
-        type filter hook input priority 0; policy drop;
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
 
-        # Allow established/related connections
-        ct state established,related accept
+    # Allow established/related connections
+    ct state established,related accept
 
-        # Allow loopback
-        iif lo accept
+    # Allow loopback
+    iif lo accept
 
-        # SSH rules
-        ${local.nftables_ssh_rules}
+    # SSH rules
+    ${local.nftables_ssh_rules}
 
-        # HTTP/HTTPS rules (Cloudflare IPs or all)
-        ${local.nftables_http_rules_v4}
-        ${local.nftables_http_rules_v6}
+    # HTTP/HTTPS rules (Cloudflare IPs or all)
+    ${local.nftables_http_rules_v4}
+    ${local.nftables_http_rules_v6}
 
-        # ICMP for ping
-        ip protocol icmp accept
-        ip6 nexthdr icmpv6 accept
-      }
+    # ICMP for ping
+    ip protocol icmp accept
+    ip6 nexthdr icmpv6 accept
+  }
 
-      chain forward {
-        type filter hook forward priority 0; policy drop;
-      }
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+  }
 
-      chain output {
-        type filter hook output priority 0; policy accept;
-      }
-    }
-    NFTCONF
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+}
+NFTCONF
 
-    # Enable and start nftables
-    systemctl enable nftables
-    systemctl restart nftables
+# Enable and start nftables
+systemctl enable nftables
+systemctl restart nftables
 
-    echo "nftables firewall configured successfully"
-  EOF
+echo "nftables firewall configured successfully"
+EOF
+
+  # OVH firewall script (empty if disabled)
+  ovh_firewall_script = var.enable_ovh_firewall ? local.ovh_firewall_script_content : ""
 
   # Combined user data for OVH (firewall + docker if enabled)
   ovh_user_data = join("\n", compact([
-    var.enable_ovh_firewall ? local.ovh_firewall_script : "",
+    local.ovh_firewall_script,
     local.user_data
   ]))
 }
