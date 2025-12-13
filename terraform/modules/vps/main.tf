@@ -9,6 +9,8 @@ locals {
   ssh_key_name = var.ssh_key_name != null ? var.ssh_key_name : "${var.name}-ssh-key"
 
   # Cloudflare IPv4 ranges (https://www.cloudflare.com/ips-v4)
+  # NOTE: These IP ranges should be periodically reviewed as Cloudflare occasionally
+  # adds new ranges. Check https://www.cloudflare.com/ips/ for updates.
   cloudflare_ipv4_ranges = [
     "173.245.48.0/20",
     "103.21.244.0/22",
@@ -104,6 +106,83 @@ locals {
 
   # Final user data - empty string if no Docker install needed
   user_data = var.install_docker ? local.docker_install_script : ""
+
+  # SSH rules for nftables (OVH firewall)
+  nftables_ssh_rules = join("\n    ", [for ip in local.ssh_allowed_ips : "ip saddr ${ip} tcp dport 22 accept"])
+
+  # HTTP/HTTPS rules for nftables (OVH firewall)
+  nftables_http_rules_v4 = var.enable_cloudflare_only ? join("\n    ", concat(
+    [for ip in local.cloudflare_ipv4_ranges : "ip saddr ${ip} tcp dport 80 accept"],
+    [for ip in local.cloudflare_ipv4_ranges : "ip saddr ${ip} tcp dport 443 accept"],
+    [for ip in var.additional_http_allowed_ips : "ip saddr ${ip} tcp dport 80 accept"],
+    [for ip in var.additional_http_allowed_ips : "ip saddr ${ip} tcp dport 443 accept"]
+  )) : "tcp dport 80 accept\n    tcp dport 443 accept"
+
+  nftables_http_rules_v6 = var.enable_cloudflare_only && var.enable_ipv6 ? join("\n    ", concat(
+    [for ip in local.cloudflare_ipv6_ranges : "ip6 saddr ${ip} tcp dport 80 accept"],
+    [for ip in local.cloudflare_ipv6_ranges : "ip6 saddr ${ip} tcp dport 443 accept"]
+  )) : ""
+
+  # OVH firewall script using nftables (since OVH doesn't have native security groups)
+  # This provides equivalent protection to Scaleway's security groups
+  ovh_firewall_script = var.enable_ovh_firewall ? <<-EOF
+    #!/bin/bash
+    set -e
+
+    # Install nftables if not present
+    apt-get update
+    apt-get install -y nftables
+
+    # Create nftables configuration
+    cat > /etc/nftables.conf << 'NFTCONF'
+    #!/usr/sbin/nft -f
+
+    flush ruleset
+
+    table inet filter {
+      chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Allow established/related connections
+        ct state established,related accept
+
+        # Allow loopback
+        iif lo accept
+
+        # SSH rules
+        ${local.nftables_ssh_rules}
+
+        # HTTP/HTTPS rules (Cloudflare IPs or all)
+        ${local.nftables_http_rules_v4}
+        ${local.nftables_http_rules_v6}
+
+        # ICMP for ping
+        ip protocol icmp accept
+        ip6 nexthdr icmpv6 accept
+      }
+
+      chain forward {
+        type filter hook forward priority 0; policy drop;
+      }
+
+      chain output {
+        type filter hook output priority 0; policy accept;
+      }
+    }
+    NFTCONF
+
+    # Enable and start nftables
+    systemctl enable nftables
+    systemctl restart nftables
+
+    echo "nftables firewall configured successfully"
+  EOF
+
+  # Combined user data for OVH (firewall + docker if enabled)
+  ovh_user_data = join("\n", compact([
+    var.enable_ovh_firewall ? local.ovh_firewall_script : "",
+    local.user_data
+  ]))
 }
 
 #------------------------------------------------------------------------------
@@ -246,9 +325,11 @@ resource "ovh_cloud_project_instance" "this" {
     public = true
   }
 
+  # Cloud-init user data (includes firewall setup and Docker installation)
+  user_data = local.ovh_user_data
+
   depends_on = [ovh_me_ssh_key.this]
 }
 
-# OVH instances don't have built-in security groups like Scaleway
-# Firewall rules must be configured via cloud-init/user-data using iptables/nftables
-# or using OVH's vRack/Private Network features
+# Note: OVH instances don't have built-in security groups like Scaleway
+# The nftables firewall is configured via cloud-init when enable_ovh_firewall = true

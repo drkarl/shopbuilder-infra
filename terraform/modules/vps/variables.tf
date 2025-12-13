@@ -112,7 +112,7 @@ variable "install_docker_compose" {
 }
 
 variable "docker_compose_version" {
-  description = "Docker Compose version to install"
+  description = "Docker Compose version to install. NOTE: Consider overriding this to get security patches as the default may become outdated."
   type        = string
   default     = "v2.24.0"
 
@@ -157,6 +157,12 @@ variable "tags" {
 #------------------------------------------------------------------------------
 # OVH-specific variables
 #------------------------------------------------------------------------------
+
+variable "enable_ovh_firewall" {
+  description = "Enable nftables-based firewall for OVH instances (provides equivalent protection to Scaleway security groups)"
+  type        = bool
+  default     = true
+}
 
 variable "ovh_cloud_project_id" {
   description = "OVH Cloud Project ID (required for OVH provider)"

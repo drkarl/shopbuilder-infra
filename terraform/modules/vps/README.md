@@ -134,6 +134,7 @@ module "vps" {
 | enable_ipv6 | Enable IPv6 on the VPS | `bool` | `true` | no |
 | additional_security_group_rules | Additional security group rules to apply | `list(object)` | `[]` | no |
 | tags | Tags to apply to the VPS instance | `map(string)` | `{}` | no |
+| enable_ovh_firewall | Enable nftables-based firewall for OVH instances | `bool` | `true` | no |
 | ovh_cloud_project_id | OVH Cloud Project ID (required for OVH provider) | `string` | `null` | no |
 | ovh_image_id | OVH image ID for the instance (required for OVH provider) | `string` | `null` | no |
 
@@ -240,7 +241,10 @@ install_docker_compose = false
 ### OVH
 
 - OVH Cloud instances don't have native security groups like Scaleway
-- Firewall rules should be managed via cloud-init (iptables/nftables) or OVH Network features
+- **nftables firewall** is automatically configured via cloud-init when `enable_ovh_firewall = true` (default)
+  - Provides equivalent protection to Scaleway's security groups
+  - Enforces Cloudflare IP restrictions on HTTP/HTTPS when `enable_cloudflare_only = true`
+  - Restricts SSH access based on `ssh_allowed_ips`
 - Requires `ovh_cloud_project_id` and `ovh_image_id` variables
 - SSH keys are managed at the OVH account level
 
