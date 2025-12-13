@@ -158,4 +158,3 @@ variable "custom_records" {
     error_message = "MX and SRV records must have a priority value set."
   }
 }
-
