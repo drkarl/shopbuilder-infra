@@ -172,6 +172,11 @@ module "cloudflare" {
 ### S3 Client Configuration (Java/Spring Boot)
 
 ```java
+// Variables injected via @Value annotations from application.properties:
+// @Value("${cloudflare.account-id}") String accountId
+// @Value("${r2.access-key-id}") String r2AccessKeyId
+// @Value("${r2.secret-access-key}") String r2SecretAccessKey
+// See docs/cloudflare-services.md for complete R2Config class example.
 S3Client s3Client = S3Client.builder()
     .endpointOverride(URI.create("https://" + accountId + ".r2.cloudflarestorage.com"))
     .region(Region.of("auto"))

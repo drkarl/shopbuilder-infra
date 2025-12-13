@@ -145,10 +145,10 @@ variable "custom_hostnames" {
   validation {
     condition = alltrue([
       for k, v in var.custom_hostnames : v.ssl_settings == null || contains(
-        ["1.0", "1.1", "1.2", "1.3"],
+        ["1.2", "1.3"],
         v.ssl_settings.min_tls_version
       )
     ])
-    error_message = "Minimum TLS version must be one of: 1.0, 1.1, 1.2, 1.3."
+    error_message = "Minimum TLS version must be one of: 1.2, 1.3. TLS 1.0 and 1.1 are deprecated and insecure."
   }
 }
