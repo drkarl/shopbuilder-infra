@@ -110,8 +110,8 @@ EOF
   # Security Hardening Scripts
   #------------------------------------------------------------------------------
 
-  # SSH hardening script
-  ssh_hardening_script = var.enable_hardening ? <<-EOF
+  # SSH hardening script content
+  _ssh_hardening_content = <<-EOF
 
 # SSH Hardening
 echo "Configuring SSH hardening..."
@@ -206,10 +206,11 @@ else
   cp /etc/ssh/sshd_config.original /etc/ssh/sshd_config
 fi
 EOF
-  : ""
 
-  # UFW firewall configuration (needed for fail2ban banaction)
-  ufw_script = var.enable_fail2ban ? <<-EOF
+  ssh_hardening_script = var.enable_hardening ? local._ssh_hardening_content : ""
+
+  # UFW firewall configuration content (needed for fail2ban banaction)
+  _ufw_content = <<-EOF
 
 # UFW Firewall Configuration
 echo "Configuring UFW firewall..."
@@ -234,10 +235,11 @@ ufw allow 443/tcp comment "HTTPS"
 ufw --force enable
 echo "UFW firewall configured and enabled"
 EOF
-  : ""
 
-  # fail2ban installation and configuration
-  fail2ban_script = var.enable_fail2ban ? <<-EOF
+  ufw_script = var.enable_fail2ban ? local._ufw_content : ""
+
+  # fail2ban installation and configuration content
+  _fail2ban_content = <<-EOF
 
 # fail2ban Installation and Configuration
 echo "Installing and configuring fail2ban..."
@@ -277,10 +279,11 @@ systemctl enable fail2ban
 systemctl restart fail2ban
 echo "fail2ban configured"
 EOF
-  : ""
 
-  # Unattended upgrades configuration
-  unattended_upgrades_script = var.enable_unattended_upgrades ? <<-EOF
+  fail2ban_script = var.enable_fail2ban ? local._fail2ban_content : ""
+
+  # Unattended upgrades configuration content
+  _unattended_upgrades_content = <<-EOF
 
 # Unattended Security Upgrades
 echo "Configuring unattended upgrades..."
@@ -314,10 +317,11 @@ systemctl enable unattended-upgrades
 systemctl restart unattended-upgrades
 echo "Unattended upgrades configured"
 EOF
-  : ""
 
-  # Docker daemon hardening
-  docker_hardening_script = var.enable_docker_hardening && var.install_docker ? <<-EOF
+  unattended_upgrades_script = var.enable_unattended_upgrades ? local._unattended_upgrades_content : ""
+
+  # Docker daemon hardening content
+  _docker_hardening_content = <<-EOF
 
 # Docker Daemon Hardening
 echo "Configuring Docker daemon security..."
@@ -350,10 +354,11 @@ DOCKERCONF
 systemctl restart docker
 echo "Docker daemon hardening configured and applied"
 EOF
-  : ""
 
-  # Log rotation configuration
-  logrotate_script = var.enable_hardening ? <<-EOF
+  docker_hardening_script = var.enable_docker_hardening && var.install_docker ? local._docker_hardening_content : ""
+
+  # Log rotation configuration content
+  _logrotate_content = <<-EOF
 
 # Log Rotation Configuration
 echo "Configuring log rotation..."
@@ -382,7 +387,8 @@ LRCONF
 
 echo "Log rotation configured"
 EOF
-  : ""
+
+  logrotate_script = var.enable_hardening ? local._logrotate_content : ""
 
   # Combined hardening script
   hardening_script = var.enable_hardening ? join("\n", compact([
