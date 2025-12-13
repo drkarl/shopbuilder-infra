@@ -104,20 +104,22 @@ Last Verified: 2025-12-13
 Perform quarterly to verify backup accessibility.
 
 ```bash
-# 1. Retrieve key from password manager (copy to temporary file)
-cat > /tmp/test-key.txt << 'EOF'
+# 1. Retrieve key from password manager (copy to a secure temporary file)
+KEYFILE=$(mktemp)
+cat > "$KEYFILE" << 'EOF'
 # paste key content here
 EOF
 
 # 2. Set the key file
-export SOPS_AGE_KEY_FILE=/tmp/test-key.txt
+export SOPS_AGE_KEY_FILE="$KEYFILE"
 
 # 3. Test decryption
 sops -d secrets/production.enc.yaml > /dev/null && echo "SUCCESS: Key works" || echo "FAILED: Key invalid"
 
 # 4. Clean up immediately
-rm -f /tmp/test-key.txt
+rm -f "$KEYFILE"
 unset SOPS_AGE_KEY_FILE
+unset KEYFILE
 ```
 
 ### Key Rotation Procedure
@@ -133,24 +135,31 @@ age-keygen -o keys/production.age.key.new
 
 # 2. Get new public key
 NEW_PUBLIC_KEY=$(age-keygen -y keys/production.age.key.new)
+echo "New public key: $NEW_PUBLIC_KEY"
 
-# 3. Decrypt with old key
+# 3. Update .sops.yaml: ADD new public key (keep old one temporarily)
+# Edit .sops.yaml and add the new age public key alongside the old one
+
+# 4. Re-encrypt atomically using sops updatekeys (no intermediate unencrypted file)
 export SOPS_AGE_KEY_FILE=keys/production.age.key
-sops -d secrets/production.enc.yaml > secrets/production.yaml
+sops updatekeys secrets/production.enc.yaml
 
-# 4. Update .sops.yaml with new public key
-# Edit .sops.yaml and replace the age public key
-
-# 5. Re-encrypt with new key
+# 5. Verify new key can decrypt
 export SOPS_AGE_KEY_FILE=keys/production.age.key.new
-sops -e secrets/production.yaml > secrets/production.enc.yaml
+sops -d secrets/production.enc.yaml > /dev/null && echo "New key verified" || { echo "ERROR: New key failed"; exit 1; }
 
-# 6. Delete unencrypted file and old key
-rm secrets/production.yaml
+# 6. Remove old public key from .sops.yaml
+# Edit .sops.yaml and remove the old age public key
+
+# 7. Run updatekeys again to remove old key access
+export SOPS_AGE_KEY_FILE=keys/production.age.key.new
+sops updatekeys secrets/production.enc.yaml
+
+# 8. Replace old key file with new one
 mv keys/production.age.key.new keys/production.age.key
 
-# 7. Update all backup locations with new key
-# 8. Update CI/CD secrets with new key content
+# 9. Update all backup locations with new key
+# 10. Update CI/CD secrets with new key content
 ```
 
 ---
@@ -349,14 +358,23 @@ ssh root@$VPS_IP "docker compose exec app curl localhost:8080/actuator/health"
 curl -sI https://your-domain.com | grep -i "HTTP/2 200"
 ```
 
+#### Step 8: Clean Up Local Secrets
+
+```bash
+# Remove decrypted secrets from local filesystem (contains sensitive credentials)
+rm -f .env.production
+
+# Verify cleanup
+ls -la .env.production 2>/dev/null && echo "WARNING: File still exists" || echo "Cleanup complete"
+```
+
 ### Partial Recovery Scenarios
 
 #### VPS Only (Database and DNS Intact)
 
 ```bash
 cd terraform/environments/prod
-terraform taint module.vps.scaleway_instance.this
-terraform apply
+terraform apply -replace="module.vps.scaleway_instance.this"
 # Then redeploy application
 ```
 
