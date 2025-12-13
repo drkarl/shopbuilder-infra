@@ -7,7 +7,7 @@
 #   ./scripts/rollback.sh <environment> [OPTIONS] [VERSION]
 #
 # Arguments:
-#   environment         Target environment: staging or production
+#   environment         Target environment: dev, staging, or production
 #   VERSION             Docker image tag to rollback to (optional)
 #
 # Options:
@@ -110,9 +110,9 @@ check_requirements() {
     fi
 
     # Validate environment
-    if [[ "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
+    if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "staging" && "$ENVIRONMENT" != "production" ]]; then
         log_error "Invalid environment: $ENVIRONMENT"
-        log_info "Valid environments: staging, production"
+        log_info "Valid environments: dev, staging, production"
         exit 1
     fi
 
