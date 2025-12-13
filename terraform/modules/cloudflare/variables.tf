@@ -42,7 +42,7 @@ variable "r2_bucket" {
   default = null
 
   validation {
-    condition = var.r2_bucket == null || can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", var.r2_bucket.name))
+    condition     = var.r2_bucket == null || can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", var.r2_bucket.name))
     error_message = "R2 bucket name must be 3-63 characters, lowercase alphanumeric and hyphens, start and end with alphanumeric."
   }
 
