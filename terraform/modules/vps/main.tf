@@ -376,17 +376,21 @@ resource "ovh_cloud_project_ssh_key" "this" {
 resource "ovh_cloud_project_instance" "this" {
   count = var.provider_type == "ovh" ? 1 : 0
 
-  service_name = var.ovh_cloud_project_id
-  name         = var.name
-  flavor_name  = var.instance_type
-  region       = var.region
+  service_name   = var.ovh_cloud_project_id
+  name           = var.name
+  region         = var.region
+  billing_period = var.ovh_billing_period
 
-  # Use the SSH key
-  ssh_key = ovh_cloud_project_ssh_key.this[0].name
+  flavor {
+    flavor_id = var.ovh_flavor_id
+  }
 
-  # Boot from image
   boot_from {
     image_id = var.ovh_image_id
+  }
+
+  ssh_key {
+    name = ovh_cloud_project_ssh_key.this[0].name
   }
 
   network {
@@ -406,6 +410,10 @@ resource "ovh_cloud_project_instance" "this" {
     precondition {
       condition     = var.ovh_image_id != null
       error_message = "The 'ovh_image_id' variable is required when provider_type is 'ovh'."
+    }
+    precondition {
+      condition     = var.ovh_flavor_id != null
+      error_message = "The 'ovh_flavor_id' variable is required when provider_type is 'ovh'."
     }
   }
 }
