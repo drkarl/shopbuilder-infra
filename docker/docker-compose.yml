@@ -56,6 +56,10 @@ services:
       # Stripe Payment Gateway
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
+      # Resend email service
+      - RESEND_API_KEY=${RESEND_API_KEY:?RESEND_API_KEY is required}
+      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@staticshop.io}
       - SERVER_PORT=8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
@@ -103,6 +107,10 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
       - AWS_REGION=${AWS_REGION:-eu-central-1}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:?S3_BUCKET_NAME is required}
+      # Resend email service
+      - RESEND_API_KEY=${RESEND_API_KEY:?RESEND_API_KEY is required}
+      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@staticshop.io}
       - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-4}
       - SERVER_PORT=8081
     healthcheck:
