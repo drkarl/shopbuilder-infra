@@ -280,7 +280,7 @@ install_docker_compose = false
 
 ```bash
 export SCW_ACCESS_KEY="your-access-key"
-export SCW_SECRET_KEY="your-secret-key"
+export SCW_SECRET_KEY="your-secret-key"  # pragma: allowlist secret
 export SCW_DEFAULT_PROJECT_ID="your-project-id"
 ```
 
@@ -289,7 +289,7 @@ export SCW_DEFAULT_PROJECT_ID="your-project-id"
 ```bash
 export OVH_ENDPOINT="ovh-eu"
 export OVH_APPLICATION_KEY="your-app-key"
-export OVH_APPLICATION_SECRET="your-app-secret"
+export OVH_APPLICATION_SECRET="your-app-secret"  # pragma: allowlist secret
 export OVH_CONSUMER_KEY="your-consumer-key"
 ```
 
