@@ -75,6 +75,44 @@ output "custom_record_hostnames" {
 }
 
 #------------------------------------------------------------------------------
+# Email Record Outputs
+#------------------------------------------------------------------------------
+
+output "email_spf_record_id" {
+  description = "ID of the SPF DNS record"
+  value       = length(cloudflare_record.email_spf) > 0 ? cloudflare_record.email_spf[0].id : null
+}
+
+output "email_dkim_record_ids" {
+  description = "Map of DKIM selector names to their record IDs"
+  value       = { for selector, record in cloudflare_record.email_dkim : selector => record.id }
+}
+
+output "email_dmarc_record_id" {
+  description = "ID of the DMARC DNS record"
+  value       = length(cloudflare_record.email_dmarc) > 0 ? cloudflare_record.email_dmarc[0].id : null
+}
+
+output "email_records_summary" {
+  description = "Summary of email DNS records for verification"
+  value = {
+    enabled = local.email_enabled
+    spf = length(cloudflare_record.email_spf) > 0 ? {
+      hostname = cloudflare_record.email_spf[0].hostname
+      value    = cloudflare_record.email_spf[0].content
+    } : null
+    dkim = { for selector, record in cloudflare_record.email_dkim : selector => {
+      hostname = record.hostname
+      value    = record.content
+    } }
+    dmarc = length(cloudflare_record.email_dmarc) > 0 ? {
+      hostname = cloudflare_record.email_dmarc[0].hostname
+      value    = cloudflare_record.email_dmarc[0].content
+    } : null
+  }
+}
+
+#------------------------------------------------------------------------------
 # All Records Summary
 #------------------------------------------------------------------------------
 
@@ -86,5 +124,10 @@ output "all_record_ids" {
     frontend  = length(cloudflare_record.frontend) > 0 ? cloudflare_record.frontend[0].id : null
     marketing = length(cloudflare_record.marketing) > 0 ? cloudflare_record.marketing[0].id : null
     custom    = { for name, record in cloudflare_record.custom : name => record.id }
+    email = {
+      spf   = length(cloudflare_record.email_spf) > 0 ? cloudflare_record.email_spf[0].id : null
+      dkim  = { for selector, record in cloudflare_record.email_dkim : selector => record.id }
+      dmarc = length(cloudflare_record.email_dmarc) > 0 ? cloudflare_record.email_dmarc[0].id : null
+    }
   }
 }

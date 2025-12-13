@@ -81,6 +81,56 @@ module "dns" {
 }
 ```
 
+### With Email DNS Records (Resend)
+
+```hcl
+module "dns" {
+  source = "../../modules/dns"
+
+  zone_name   = "staticshop.io"
+  environment = "prod"
+
+  api_record = {
+    subdomain = "api"
+    value     = "203.0.113.10"
+  }
+
+  # Email DNS records for Resend domain verification
+  email_records = {
+    enabled = true
+
+    # SPF record - authorize Resend to send on your behalf
+    spf = {
+      value = "v=spf1 include:_spf.resend.com ~all"
+    }
+
+    # DKIM records - provided by Resend during domain setup
+    dkim = [
+      {
+        selector = "resend._domainkey"
+        value    = "p=MIGfMA0GCS... (provided by Resend)"
+      },
+      {
+        selector = "resend2._domainkey"
+        value    = "p=MIGfMA0GCS... (provided by Resend)"
+      }
+    ]
+
+    # DMARC policy for handling authentication failures
+    dmarc = {
+      policy = "quarantine"
+      rua    = "mailto:dmarc@staticshop.io"
+      pct    = 100
+    }
+  }
+}
+
+# Output email records for verification
+output "email_dns_summary" {
+  value = module.dns.email_records_summary
+}
+```
+
 ### With Custom Records
 
 ```hcl
@@ -95,7 +145,7 @@ module "dns" {
     value     = "203.0.113.10"
   }
 
-  # Additional records
+  # Additional records (for services not covered by dedicated variables)
   custom_records = [
     {
       name     = "mail"
@@ -103,18 +153,6 @@ module "dns" {
       type     = "MX"
       priority = 10
       proxied  = false
-    },
-    {
-      name    = "@"
-      value   = "v=spf1 include:_spf.google.com ~all"
-      type    = "TXT"
-      proxied = false
-    },
-    {
-      name    = "_dmarc"
-      value   = "v=DMARC1; p=reject; rua=mailto:dmarc@example.com"
-      type    = "TXT"
-      proxied = false
     }
   ]
 }
@@ -147,6 +185,7 @@ module "dns" {
 | api_record | API subdomain record configuration | `object` | `null` | no |
 | frontend_record | Frontend subdomain record configuration | `object` | `null` | no |
 | marketing_record | Marketing/root domain record configuration | `object` | `null` | no |
+| email_records | Email DNS records for domain verification (SPF, DKIM, DMARC) | `object` | `null` | no |
 | custom_records | Additional custom DNS records | `list(object)` | `[]` | no |
 
 ### api_record Object
@@ -182,6 +221,42 @@ module "dns" {
 | proxied | Enable Cloudflare proxy | `bool` | `true` |
 | comment | Record comment | `string` | `null` |
 
+### email_records Object
+
+| Attribute | Description | Type | Default |
+|-----------|-------------|------|---------|
+| enabled | Enable email DNS records | `bool` | `false` |
+| sending_domain | Domain for sending (defaults to zone root) | `string` | `null` |
+| spf | SPF record configuration | `object` | `null` |
+| dkim | List of DKIM record configurations | `list(object)` | `[]` |
+| dmarc | DMARC policy configuration | `object` | `null` |
+
+#### spf Object
+
+| Attribute | Description | Type | Default |
+|-----------|-------------|------|---------|
+| value | SPF record value (e.g., "v=spf1 include:_spf.resend.com ~all") | `string` | - |
+| ttl | Time to live in seconds | `number` | `300` |
+
+#### dkim Object (list)
+
+| Attribute | Description | Type | Default |
+|-----------|-------------|------|---------|
+| selector | DKIM selector (e.g., "resend._domainkey") | `string` | - |
+| value | DKIM public key value | `string` | - |
+| ttl | Time to live in seconds | `number` | `300` |
+
+#### dmarc Object
+
+| Attribute | Description | Type | Default |
+|-----------|-------------|------|---------|
+| policy | DMARC policy: none, quarantine, or reject | `string` | `"none"` |
+| rua | Aggregate report email (mailto:...) | `string` | `null` |
+| ruf | Forensic report email (mailto:...) | `string` | `null` |
+| pct | Percentage of messages to apply policy (0-100) | `number` | `100` |
+| ttl | Time to live in seconds | `number` | `300` |
+| custom_value | Override with custom DMARC value | `string` | `null` |
+
 ### custom_records Object
 
 | Attribute | Description | Type | Default |
@@ -208,6 +283,10 @@ module "dns" {
 | frontend_record_hostname | Hostname of the frontend DNS record |
 | marketing_record_id | ID of the marketing/root DNS record |
 | marketing_record_hostname | Hostname of the marketing/root DNS record |
+| email_spf_record_id | ID of the SPF DNS record |
+| email_dkim_record_ids | Map of DKIM selector names to their record IDs |
+| email_dmarc_record_id | ID of the DMARC DNS record |
+| email_records_summary | Summary of email DNS records for verification |
 | custom_record_ids | Map of custom DNS record names to their IDs |
 | custom_record_hostnames | Map of custom DNS record names to their hostnames |
 | all_record_ids | All DNS record IDs managed by this module |

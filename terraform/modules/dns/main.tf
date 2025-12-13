@@ -90,6 +90,71 @@ resource "cloudflare_record" "marketing" {
 }
 
 #------------------------------------------------------------------------------
+# Email DNS Records (SPF, DKIM, DMARC)
+# Required for transactional email services like Resend
+#------------------------------------------------------------------------------
+
+locals {
+  email_enabled     = var.email_records != null && var.email_records.enabled
+  email_domain_name = local.email_enabled && var.email_records.sending_domain != null ? var.email_records.sending_domain : "@"
+
+  # Build DMARC value from components or use custom value
+  dmarc_value = local.email_enabled && var.email_records.dmarc != null ? (
+    var.email_records.dmarc.custom_value != null ? var.email_records.dmarc.custom_value : join("; ", compact([
+      "v=DMARC1",
+      "p=${var.email_records.dmarc.policy}",
+      var.email_records.dmarc.pct != null && var.email_records.dmarc.pct != 100 ? "pct=${var.email_records.dmarc.pct}" : null,
+      var.email_records.dmarc.rua != null ? "rua=${var.email_records.dmarc.rua}" : null,
+      var.email_records.dmarc.ruf != null ? "ruf=${var.email_records.dmarc.ruf}" : null
+    ]))
+  ) : null
+}
+
+# SPF Record - Specifies authorized mail servers
+resource "cloudflare_record" "email_spf" {
+  count = local.email_enabled && var.email_records.spf != null ? 1 : 0
+
+  zone_id = data.cloudflare_zone.this.id
+  name    = local.email_domain_name
+  content = var.email_records.spf.value
+  type    = "TXT"
+  ttl     = var.email_records.spf.ttl
+  proxied = false
+
+  comment = "SPF record for email authentication"
+}
+
+# DKIM Records - For email signing/authentication
+resource "cloudflare_record" "email_dkim" {
+  for_each = local.email_enabled ? {
+    for idx, dkim in var.email_records.dkim : dkim.selector => dkim
+  } : {}
+
+  zone_id = data.cloudflare_zone.this.id
+  name    = each.value.selector
+  content = each.value.value
+  type    = "TXT"
+  ttl     = each.value.ttl
+  proxied = false
+
+  comment = "DKIM record for email signing (${each.value.selector})"
+}
+
+# DMARC Record - Policy for handling authentication failures
+resource "cloudflare_record" "email_dmarc" {
+  count = local.email_enabled && var.email_records.dmarc != null ? 1 : 0
+
+  zone_id = data.cloudflare_zone.this.id
+  name    = "_dmarc"
+  content = local.dmarc_value
+  type    = "TXT"
+  ttl     = var.email_records.dmarc.ttl
+  proxied = false
+
+  comment = "DMARC policy record"
+}
+
+#------------------------------------------------------------------------------
 # Additional Custom Records
 # Flexible support for any additional DNS records
 #------------------------------------------------------------------------------

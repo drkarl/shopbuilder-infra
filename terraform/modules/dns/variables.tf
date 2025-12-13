@@ -118,6 +118,61 @@ variable "marketing_record" {
 }
 
 #------------------------------------------------------------------------------
+# Email DNS Records (Resend/Transactional Email)
+#------------------------------------------------------------------------------
+
+variable "email_records" {
+  description = "Email DNS records for domain verification (SPF, DKIM, DMARC). These records are required for transactional email services like Resend."
+  type = object({
+    enabled = optional(bool, false)
+    # Domain to send from (typically the zone_name or a subdomain like mail.example.com)
+    sending_domain = optional(string)
+    # SPF record - specifies authorized mail servers
+    spf = optional(object({
+      value = string # e.g., "v=spf1 include:_spf.resend.com ~all"
+      ttl   = optional(number, 300)
+    }))
+    # DKIM records - for email authentication/signing (Resend typically provides multiple)
+    dkim = optional(list(object({
+      selector = string # e.g., "resend._domainkey" or custom selector
+      value    = string # The DKIM public key value
+      ttl      = optional(number, 300)
+    })), [])
+    # DMARC record - policy for handling authentication failures
+    dmarc = optional(object({
+      policy        = optional(string, "none") # none, quarantine, reject
+      rua           = optional(string)         # Aggregate report email (mailto:...)
+      ruf           = optional(string)         # Forensic report email (mailto:...)
+      pct           = optional(number, 100)    # Percentage of messages to apply policy
+      ttl           = optional(number, 300)
+      custom_value  = optional(string)         # Override with custom DMARC value
+    }))
+  })
+  default = null
+
+  validation {
+    condition = var.email_records == null || var.email_records.enabled == false || (
+      var.email_records.spf != null
+    )
+    error_message = "SPF record is required when email records are enabled."
+  }
+
+  validation {
+    condition = var.email_records == null || var.email_records.dmarc == null || (
+      contains(["none", "quarantine", "reject"], var.email_records.dmarc.policy)
+    )
+    error_message = "DMARC policy must be one of: none, quarantine, reject."
+  }
+
+  validation {
+    condition = var.email_records == null || var.email_records.dmarc == null || var.email_records.dmarc.pct == null || (
+      var.email_records.dmarc.pct >= 0 && var.email_records.dmarc.pct <= 100
+    )
+    error_message = "DMARC percentage must be between 0 and 100."
+  }
+}
+
+#------------------------------------------------------------------------------
 # Custom Records
 #------------------------------------------------------------------------------
 
