@@ -56,16 +56,18 @@ The runtime image is configured with JVM arguments optimized for virtual threads
 |--------|-------------|
 | `-XX:+UseZGC` | Z Garbage Collector for low-latency |
 | `-XX:+ZGenerational` | Generational ZGC for improved throughput |
-| `-Xmx2g` | Maximum heap size (2GB) |
+| `-Xmx1536m` | Maximum heap size (1.5GB, ~75% of 2GB container limit) |
 | `-Xms512m` | Initial heap size (512MB) |
 | `-XX:+ExitOnOutOfMemoryError` | Exit JVM on OOM for container restart |
 | `-Djava.security.egd=file:/dev/./urandom` | Faster random number generation |
 
+> **Important**: Set JVM heap (`-Xmx`) to ~75% of the container memory limit. This leaves room for non-heap memory (metaspace, thread stacks, direct buffers, code cache, etc.) and prevents OOM kills by Docker.
+
 Override JVM settings at runtime via the `JAVA_TOOL_OPTIONS` environment variable:
 
 ```bash
-# Example: Increase heap to 4GB
-JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx4g -Xms1g -XX:+ExitOnOutOfMemoryError"
+# Example: Increase heap to 3GB (for a 4GB container)
+JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx3g -Xms1g -XX:+ExitOnOutOfMemoryError"
 ```
 
 ### Virtual Threads
@@ -366,11 +368,9 @@ docker compose up -d
 For production deployments, use SOPS to manage secrets. See `docs/secrets-management.md` for details.
 
 ```bash
-# Decrypt secrets and source them
-sops -d secrets/production.enc.yaml | yq -r 'to_entries | .[] | "export \(.key)=\(.value)"' > /tmp/env
-source /tmp/env
-rm /tmp/env
+# Decrypt secrets and source them securely (no temp file written to disk)
+source <(sops -d secrets/production.enc.yaml | yq -r 'to_entries | .[] | "export \(.key)=\(.value)"')
 
-# Or use SOPS exec
+# Or use SOPS exec-env (recommended)
 sops exec-env secrets/production.enc.yaml 'docker compose up -d'
 ```

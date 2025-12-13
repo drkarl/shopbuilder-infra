@@ -52,7 +52,7 @@ EXPOSE 8080
 # JVM arguments for production with virtual threads support
 # ZGC provides low-latency garbage collection suitable for virtual threads
 # Virtual threads are enabled by default in JDK 21+
-ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx2g -Xms512m -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx1536m -Xms512m -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 # Health check configuration
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
