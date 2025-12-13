@@ -18,7 +18,7 @@ variable "region_id" {
   default     = "aws-eu-central-1"
 
   validation {
-    condition     = can(regex("^aws-[a-z]{2}-[a-z]+-[0-9]$", var.region_id))
+    condition     = can(regex("^aws-[a-z]{2}-[a-z]+-[0-9]+$", var.region_id))
     error_message = "Region ID must be a valid Neon region (e.g., aws-us-east-1, aws-eu-central-1)."
   }
 }

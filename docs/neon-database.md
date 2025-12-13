@@ -46,9 +46,8 @@ spring:
       maximum-pool-size: 10
       connection-timeout: 30000
   flyway:
+    # URL contains embedded credentials, no separate user/password needed
     url: ${DATABASE_URL_DIRECT}
-    user: ${DB_USER:shopbuilder}
-    password: ${DB_PASSWORD}
 ```
 
 ## Environment Configurations
