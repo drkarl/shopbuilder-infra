@@ -42,7 +42,7 @@ This guide covers deploying the ShopBuilder application stack to VPS using Docke
 The deployment scripts follow a secure-by-design approach:
 
 1. **Age private keys never leave the operator's machine** - decryption happens locally
-2. **Secrets are transferred encrypted** - only the decrypted `.env` file is transferred
+2. **Secrets are decrypted locally, then transferred as plaintext `.env` file**
 3. **Plaintext secrets are immediately deleted** - using `shred` when available
 4. **No secrets stored on VPS** - the `.env` file is deleted after Docker reads it
 
