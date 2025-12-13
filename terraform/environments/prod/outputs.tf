@@ -79,6 +79,31 @@ output "neon_connection_info" {
   value       = module.neon_database.connection_info
 }
 
+#------------------------------------------------------------------------------
+# Upstash Redis Outputs
+#------------------------------------------------------------------------------
+
+output "redis_endpoint" {
+  description = "Redis endpoint hostname"
+  value       = module.redis.endpoint
+}
+
+output "redis_port" {
+  description = "Redis port number"
+  value       = module.redis.port
+}
+
+output "redis_url" {
+  description = "Full Redis connection URL (sensitive - add to SOPS secrets)"
+  value       = module.redis.redis_url
+  sensitive   = true
+}
+
+output "redis_connection_info" {
+  description = "Non-sensitive Redis connection summary"
+  value       = module.redis.connection_info
+}
+
 # Add additional module outputs here as infrastructure grows
 # Example:
 # output "vps_public_ip" {
