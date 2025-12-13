@@ -267,6 +267,31 @@ age-keygen -y keys/production.age.key
 2. Check SSH key is configured
 3. Verify VPS is reachable and SSH port is open
 
+### SSH Host Key Verification in CI/CD
+
+For first-time connections to new hosts in CI/CD environments, you'll need to handle SSH host key verification. Options include:
+
+1. **Pre-populate known_hosts (recommended):**
+   ```bash
+   ssh-keyscan -H your-vps-host >> ~/.ssh/known_hosts
+   ```
+
+2. **Disable strict host key checking (less secure, use with caution):**
+   ```bash
+   ssh -o StrictHostKeyChecking=accept-new user@host
+   ```
+   Note: `accept-new` accepts new keys but still rejects changed keys, which is safer than `no`.
+
+3. **Use GitHub Actions secret for known_hosts:**
+   ```yaml
+   - name: Setup SSH
+     run: |
+       mkdir -p ~/.ssh
+       echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+       chmod 600 ~/.ssh/id_ed25519
+       echo "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+   ```
+
 ### "Containers failed to start"
 
 1. Check container logs: `docker compose logs`
