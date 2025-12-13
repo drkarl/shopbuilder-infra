@@ -103,6 +103,15 @@ module "dns" {
       type    = "CNAME"
       proxied = true
       comment = "WWW redirect to marketing site"
+    },
+    # Woodpecker CI server: ci.staticshop.io
+    # Note: Update 'value' with the actual VPS IP when provisioned
+    {
+      name    = "ci"
+      value   = var.woodpecker_server_ip
+      type    = "A"
+      proxied = true
+      comment = "Woodpecker CI server"
     }
   ]
 }

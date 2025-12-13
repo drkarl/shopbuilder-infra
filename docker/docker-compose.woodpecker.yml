@@ -1,0 +1,97 @@
+# Woodpecker CI Server Configuration
+# Deploy with: docker compose -f docker-compose.woodpecker.yml up -d
+#
+# Required environment variables (set in .env or export):
+# - WOODPECKER_HOST: Public URL (e.g., https://ci.staticshop.io)
+# - WOODPECKER_GITHUB_CLIENT: GitHub OAuth App Client ID
+# - WOODPECKER_GITHUB_SECRET: GitHub OAuth App Client Secret
+# - WOODPECKER_AGENT_SECRET: Shared secret for agent authentication
+# - WOODPECKER_ADMIN: Comma-separated list of admin GitHub usernames
+
+services:
+  # Woodpecker CI Server
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: woodpecker-server
+    restart: unless-stopped
+    ports:
+      - "${WOODPECKER_PORT:-8000}:8000"
+      - "${WOODPECKER_GRPC_PORT:-9000}:9000"
+    environment:
+      # Server configuration
+      - WOODPECKER_HOST=${WOODPECKER_HOST:?WOODPECKER_HOST is required}
+      - WOODPECKER_OPEN=${WOODPECKER_OPEN:-false}
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN:?WOODPECKER_ADMIN is required}
+      # GitHub OAuth configuration
+      - WOODPECKER_GITHUB=true
+      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT:?WOODPECKER_GITHUB_CLIENT is required}
+      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET:?WOODPECKER_GITHUB_SECRET is required}
+      # Agent authentication
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?WOODPECKER_AGENT_SECRET is required}
+      # Database configuration (SQLite by default)
+      - WOODPECKER_DATABASE_DRIVER=${WOODPECKER_DATABASE_DRIVER:-sqlite3}
+      # Logging
+      - WOODPECKER_LOG_LEVEL=${WOODPECKER_LOG_LEVEL:-info}
+    volumes:
+      - woodpecker-data:/var/lib/woodpecker/
+    networks:
+      - woodpecker-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "${WOODPECKER_SERVER_CPU_LIMIT:-1.0}"
+          memory: ${WOODPECKER_SERVER_MEMORY_LIMIT:-512M}
+        reservations:
+          cpus: "${WOODPECKER_SERVER_CPU_RESERVATION:-0.25}"
+          memory: ${WOODPECKER_SERVER_MEMORY_RESERVATION:-128M}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Woodpecker CI Agent (runs pipelines)
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: woodpecker-agent
+    restart: unless-stopped
+    depends_on:
+      woodpecker-server:
+        condition: service_healthy
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET:?WOODPECKER_AGENT_SECRET is required}
+      - WOODPECKER_MAX_WORKFLOWS=${WOODPECKER_MAX_WORKFLOWS:-2}
+      - WOODPECKER_LOG_LEVEL=${WOODPECKER_LOG_LEVEL:-info}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - woodpecker-network
+    deploy:
+      resources:
+        limits:
+          cpus: "${WOODPECKER_AGENT_CPU_LIMIT:-2.0}"
+          memory: ${WOODPECKER_AGENT_MEMORY_LIMIT:-1G}
+        reservations:
+          cpus: "${WOODPECKER_AGENT_CPU_RESERVATION:-0.5}"
+          memory: ${WOODPECKER_AGENT_MEMORY_RESERVATION:-256M}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  woodpecker-network:
+    driver: bridge
+    name: woodpecker-network
+
+volumes:
+  woodpecker-data:
+    name: woodpecker-data

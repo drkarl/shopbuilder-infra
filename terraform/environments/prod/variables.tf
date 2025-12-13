@@ -50,3 +50,17 @@ variable "vps_instance_type" {
   type        = string
   default     = "GP1-S"
 }
+
+#------------------------------------------------------------------------------
+# Woodpecker CI Configuration
+#------------------------------------------------------------------------------
+
+variable "woodpecker_server_ip" {
+  description = "Public IPv4 address of the Woodpecker CI server VPS"
+  type        = string
+
+  validation {
+    condition     = can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$", var.woodpecker_server_ip))
+    error_message = "Woodpecker server IP must be a valid IPv4 address."
+  }
+}
