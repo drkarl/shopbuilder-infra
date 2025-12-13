@@ -137,14 +137,21 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter =
-            new JwtGrantedAuthoritiesConverter();
-        // Supabase stores roles in app_metadata.roles
-        authoritiesConverter.setAuthoritiesClaimName("app_metadata.roles");
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        // Note: JwtGrantedAuthoritiesConverter doesn't support nested claims like
+        // "app_metadata.roles" out of the box. Use a custom converter for nested claims.
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Collection<GrantedAuthority> authorities = new ArrayList<>();
+            Map<String, Object> appMetadata = jwt.getClaim("app_metadata");
+            if (appMetadata != null && appMetadata.containsKey("roles")) {
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) appMetadata.get("roles");
+                for (String role : roles) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+                }
+            }
+            return authorities;
+        });
         return converter;
     }
 }
@@ -277,6 +284,10 @@ In Authentication > URL Configuration:
 | Staging     | `https://staging.staticshop.io` | `https://staging.staticshop.io/auth/callback` |
 | Production  | `https://staticshop.io` | `https://staticshop.io/auth/callback` |
 
+> **Note:** While `http://localhost` works for email/password authentication, some OAuth providers
+> (Google, GitHub, etc.) may require HTTPS even in development. Consider using a local HTTPS proxy
+> or Supabase's built-in OAuth flow which handles redirects through their HTTPS domain.
+
 ## Testing
 
 ### Local Development
@@ -298,6 +309,13 @@ In Authentication > URL Configuration:
 ### JWT Debugging
 
 Decode JWTs at [jwt.io](https://jwt.io) to inspect claims during development.
+
+> **Security Warning:** Only paste development/test JWTs into online decoders like jwt.io.
+> Never paste production tokens—they could be logged or cached, and tokens with long expiry
+> remain valid until they expire. For production debugging, use local tools like `jq`:
+> ```bash
+> echo "<JWT>" | cut -d. -f2 | base64 -d 2>/dev/null | jq
+> ```
 
 ### Testing with Service Role Key
 
