@@ -191,7 +191,7 @@ docker compose -f docker-compose.woodpecker.yml stop woodpecker-server
 docker run --rm \
   -v woodpecker-data:/data \
   -v /opt/backups/woodpecker:/backup \
-  alpine cp /backup/woodpecker-20240101.sqlite /data/woodpecker.sqlite
+  alpine cp /backup/woodpecker-YYYYMMDD.sqlite /data/woodpecker.sqlite
 
 # Start the server
 docker compose -f docker-compose.woodpecker.yml start woodpecker-server
