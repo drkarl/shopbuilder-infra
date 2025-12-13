@@ -12,7 +12,7 @@ output "public_ip" {
   value = var.provider_type == "scaleway" ? (
     length(scaleway_instance_ip.this) > 0 ? scaleway_instance_ip.this[0].address : null
     ) : (
-    length(ovh_cloud_project_instance.this) > 0 ? try(ovh_cloud_project_instance.this[0].addresses[0].ip, null) : null
+    length(ovh_cloud_project_instance.this) > 0 ? try(tolist(ovh_cloud_project_instance.this[0].addresses)[0].ip, null) : null
   )
 }
 
@@ -28,7 +28,7 @@ output "ip_address" {
   value = var.provider_type == "scaleway" ? (
     length(scaleway_instance_ip.this) > 0 ? scaleway_instance_ip.this[0].address : null
     ) : (
-    length(ovh_cloud_project_instance.this) > 0 ? try(ovh_cloud_project_instance.this[0].addresses[0].ip, null) : null
+    length(ovh_cloud_project_instance.this) > 0 ? try(tolist(ovh_cloud_project_instance.this[0].addresses)[0].ip, null) : null
   )
 }
 
@@ -37,7 +37,7 @@ output "ssh_connection_string" {
   value = var.provider_type == "scaleway" ? (
     length(scaleway_instance_ip.this) > 0 ? "ssh ${var.ssh_user}@${scaleway_instance_ip.this[0].address}" : null
     ) : (
-    length(ovh_cloud_project_instance.this) > 0 ? try("ssh ${var.ssh_user}@${ovh_cloud_project_instance.this[0].addresses[0].ip}", null) : null
+    length(ovh_cloud_project_instance.this) > 0 ? try("ssh ${var.ssh_user}@${tolist(ovh_cloud_project_instance.this[0].addresses)[0].ip}", null) : null
   )
 }
 
