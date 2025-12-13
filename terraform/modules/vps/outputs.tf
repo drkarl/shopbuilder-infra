@@ -33,12 +33,22 @@ output "ip_address" {
 }
 
 output "ssh_connection_string" {
-  description = "SSH connection string to connect to the VPS"
+  description = "SSH connection string to connect to the VPS (uses configured hardening_ssh_user and hardening_ssh_port)"
   value = var.provider_type == "scaleway" ? (
-    length(scaleway_instance_ip.this) > 0 ? "ssh ${var.ssh_user}@${scaleway_instance_ip.this[0].address}" : null
+    length(scaleway_instance_ip.this) > 0 ? "ssh -p ${var.hardening_ssh_port} ${var.hardening_ssh_user}@${scaleway_instance_ip.this[0].address}" : null
     ) : (
-    length(ovh_cloud_project_instance.this) > 0 ? try("ssh ${var.ssh_user}@${tolist(ovh_cloud_project_instance.this[0].addresses)[0].ip}", null) : null
+    length(ovh_cloud_project_instance.this) > 0 ? try("ssh -p ${var.hardening_ssh_port} ${var.hardening_ssh_user}@${tolist(ovh_cloud_project_instance.this[0].addresses)[0].ip}", null) : null
   )
+}
+
+output "ssh_port" {
+  description = "SSH port configured for this VPS"
+  value       = var.hardening_ssh_port
+}
+
+output "hardening_enabled" {
+  description = "Whether security hardening is enabled for this VPS"
+  value       = var.enable_hardening
 }
 
 output "ssh_key_id" {
