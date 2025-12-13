@@ -40,11 +40,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the built JAR from build stage
-COPY --from=build /app/build/libs/*.jar app.jar
-
-# Change ownership to non-root user
-RUN chown -R spring:spring /app
+# Copy the built JAR from build stage with correct ownership
+COPY --from=build --chown=spring:spring /app/build/libs/*.jar app.jar
 
 # Switch to non-root user
 USER spring
@@ -55,9 +52,7 @@ EXPOSE 8080
 # JVM arguments for production with virtual threads support
 # ZGC provides low-latency garbage collection suitable for virtual threads
 # Virtual threads are enabled by default in JDK 21+
-ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx2g -Xms512m \
-    -XX:+ExitOnOutOfMemoryError \
-    -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:+ZGenerational -Xmx2g -Xms512m -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 # Health check configuration
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
