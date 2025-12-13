@@ -59,7 +59,7 @@ output "redis_url" {
 }
 
 output "redis_url_spring" {
-  description = "Redis URL formatted for Spring Data Redis (spring.data.redis.url)"
+  description = "Redis URL formatted for Spring Data Redis (spring.data.redis.url). Currently identical to redis_url but kept separate for semantic clarity and potential future Spring-specific formatting."
   value       = "rediss://default:${upstash_redis_database.this.password}@${upstash_redis_database.this.endpoint}:${upstash_redis_database.this.port}"
   sensitive   = true
 }

@@ -21,6 +21,7 @@ rediss://default:[password]@[endpoint]:6379
 
 ### Example
 
+<!-- pragma: allowlist secret -->
 ```
 rediss://default:AxxxXXXX@eu1-xxxxx-xxxxx.upstash.io:6379
 ```
@@ -119,6 +120,29 @@ The Redis databases are configured with eviction enabled (`eviction_enabled = tr
 - Recommended for caching workloads
 - Session data should use explicit TTLs to ensure proper expiration
 
+## Upstash Plans and Limits
+
+Upstash offers different pricing tiers. Be aware of these limits when planning your usage:
+
+### Free Tier
+- 10,000 commands/day
+- 256 MB storage
+- Single region
+- Suitable for development and testing only
+
+### Pay-as-you-go
+- $0.2 per 100K commands
+- $0.25 per GB storage/month
+- No daily limits
+- Recommended for staging/production
+
+### Pro Plans
+- Higher throughput
+- Multi-region replication
+- Dedicated support
+
+For current pricing and limits, see [Upstash Pricing](https://upstash.com/pricing).
+
 ## Regions
 
 | Environment | Region | Notes |
@@ -149,6 +173,7 @@ terraform output -raw redis_url
 
 Set these before running Terraform:
 
+<!-- pragma: allowlist secret -->
 ```bash
 export TF_VAR_upstash_email="your-email@example.com"
 export TF_VAR_upstash_api_key="your-api-key"
