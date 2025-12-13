@@ -85,8 +85,8 @@ resource "cloudflare_pages_project" "this" {
     for_each = var.pages_project.env_vars != null || var.pages_project.compatibility_date != null ? [1] : []
     content {
       production {
-        compatibility_date  = var.pages_project.compatibility_date
-        compatibility_flags = var.pages_project.compatibility_flags
+        compatibility_date    = var.pages_project.compatibility_date
+        compatibility_flags   = var.pages_project.compatibility_flags
         environment_variables = var.pages_project.env_vars
       }
     }
