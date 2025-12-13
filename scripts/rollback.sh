@@ -133,6 +133,13 @@ check_secrets_requirements() {
         exit 1
     fi
 
+    # Validate VERSION format (alphanumeric, dots, dashes, underscores)
+    if [[ ! "$VERSION" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+        log_error "Invalid VERSION format: $VERSION"
+        log_info "VERSION must contain only alphanumeric characters, dots, dashes, and underscores"
+        exit 1
+    fi
+
     # Set default age key file if not specified
     if [[ -z "$AGE_KEY_FILE" ]]; then
         AGE_KEY_FILE="$PROJECT_ROOT/keys/${ENVIRONMENT}.age.key"
@@ -169,8 +176,8 @@ list_deployments() {
 
     # Get last deployment info
     ssh -o ConnectTimeout=10 "$remote_host" "
-        if [[ -f $DEPLOY_PATH/.last_deploy ]]; then
-            cat $DEPLOY_PATH/.last_deploy
+        if [[ -f \"$DEPLOY_PATH/.last_deploy\" ]]; then
+            cat \"$DEPLOY_PATH/.last_deploy\"
         else
             echo 'No deployment info found'
         fi
@@ -182,7 +189,7 @@ list_deployments() {
 
     # Get current container versions
     ssh -o ConnectTimeout=10 "$remote_host" "
-        cd $DEPLOY_PATH 2>/dev/null && docker compose ps --format 'table {{.Name}}\t{{.Image}}\t{{.Status}}' 2>/dev/null || echo 'No containers running'
+        cd \"$DEPLOY_PATH\" 2>/dev/null && docker compose ps --format 'table {{.Name}}\t{{.Image}}\t{{.Status}}' 2>/dev/null || echo 'No containers running'
     " 2>/dev/null || echo "Unable to retrieve container status"
 
     echo ""
@@ -203,7 +210,7 @@ list_deployments() {
 
     # Check for any backup compose files or deployment history
     ssh -o ConnectTimeout=10 "$remote_host" "
-        ls -la $DEPLOY_PATH/*.yml $DEPLOY_PATH/*.yaml 2>/dev/null || echo 'No compose files found'
+        ls -la \"$DEPLOY_PATH\"/*.yml \"$DEPLOY_PATH\"/*.yaml 2>/dev/null || echo 'No compose files found'
         echo ''
         echo 'Container history (recent):'
         docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.CreatedAt}}' 2>/dev/null | head -$((LIST_COUNT + 1)) || echo 'No container history'
@@ -286,13 +293,13 @@ perform_rollback() {
 
     # Stop current containers
     log_info "Stopping current containers..."
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose down" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose down" || {
         log_warn "Failed to stop containers gracefully, continuing..."
     }
 
     # Pull specified version
     log_info "Pulling version $VERSION..."
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose pull" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose pull" || {
         log_error "Failed to pull images for version $VERSION"
         log_info "The specified version may not exist. Use --list to see available versions."
         exit 1
@@ -300,7 +307,7 @@ perform_rollback() {
 
     # Start containers with new version
     log_info "Starting containers..."
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose up -d" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose up -d" || {
         log_error "Failed to start containers"
         exit 1
     }
@@ -309,16 +316,16 @@ perform_rollback() {
     log_info "Cleaning up secrets on VPS..."
     ssh -o ConnectTimeout=10 "$remote_host" "
         if command -v shred &> /dev/null; then
-            shred -u $DEPLOY_PATH/.env 2>/dev/null || rm -f $DEPLOY_PATH/.env
+            shred -u \"$DEPLOY_PATH/.env\" 2>/dev/null || rm -f \"$DEPLOY_PATH/.env\"
         else
-            rm -f $DEPLOY_PATH/.env
+            rm -f \"$DEPLOY_PATH/.env\"
         fi
     " || log_warn "Failed to clean up secrets"
 
     # Save rollback info
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    ssh -o ConnectTimeout=10 "$remote_host" "cat > $DEPLOY_PATH/.last_deploy <<EOF
+    ssh -o ConnectTimeout=10 "$remote_host" "cat > \"$DEPLOY_PATH/.last_deploy\" <<EOF
 TIMESTAMP=$timestamp
 ENVIRONMENT=$ENVIRONMENT
 IMAGE_TAG=$VERSION
@@ -346,14 +353,14 @@ verify_rollback() {
 
     # Check container status
     log_info "Checking container status..."
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps"
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps"
 
     # Wait for health checks
     log_info "Waiting for health checks..."
     local healthy=false
     for i in $(seq 1 $max_retries); do
         local unhealthy_count
-        unhealthy_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps | grep -E '(unhealthy|starting)' | wc -l || true")
+        unhealthy_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps | grep -E '(unhealthy|starting)' | wc -l || true")
 
         if [[ "$unhealthy_count" -eq 0 ]]; then
             healthy=true
@@ -375,7 +382,7 @@ verify_rollback() {
     # Show current image versions
     echo ""
     log_info "Running containers:"
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps --format 'table {{.Name}}\t{{.Image}}\t{{.Status}}'"
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps --format 'table {{.Name}}\t{{.Image}}\t{{.Status}}'"
 }
 
 # Parse command line arguments

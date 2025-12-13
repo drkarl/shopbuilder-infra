@@ -187,6 +187,13 @@ check_requirements() {
         exit 1
     fi
 
+    # Validate IMAGE_TAG format (alphanumeric, dots, dashes, underscores)
+    if [[ ! "$IMAGE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+        log_error "Invalid IMAGE_TAG format: $IMAGE_TAG"
+        log_info "IMAGE_TAG must contain only alphanumeric characters, dots, dashes, and underscores"
+        exit 1
+    fi
+
     log_info "All requirements satisfied"
 }
 
@@ -235,7 +242,7 @@ transfer_files() {
     fi
 
     # Create deployment directory on VPS if it doesn't exist
-    ssh -o ConnectTimeout=10 "$remote_host" "mkdir -p $DEPLOY_PATH" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "mkdir -p \"$DEPLOY_PATH\"" || {
         log_error "Failed to create deployment directory on VPS"
         exit 1
     }
@@ -267,12 +274,12 @@ deploy_containers() {
     fi
 
     # Pull latest images and deploy
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose pull" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose pull" || {
         log_error "Failed to pull Docker images"
         exit 1
     }
 
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose up -d" || {
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose up -d" || {
         log_error "Failed to start containers"
         exit 1
     }
@@ -294,9 +301,9 @@ cleanup_remote_secrets() {
     # Note: shred may not be available on all systems, fall back to rm
     ssh -o ConnectTimeout=10 "$remote_host" "
         if command -v shred &> /dev/null; then
-            shred -u $DEPLOY_PATH/.env 2>/dev/null || rm -f $DEPLOY_PATH/.env
+            shred -u \"$DEPLOY_PATH/.env\" 2>/dev/null || rm -f \"$DEPLOY_PATH/.env\"
         else
-            rm -f $DEPLOY_PATH/.env
+            rm -f \"$DEPLOY_PATH/.env\"
         fi
     " || {
         log_warn "Failed to clean up .env file on VPS - please delete manually"
@@ -325,7 +332,7 @@ run_health_checks() {
     # Check container status
     log_info "Checking container status..."
     local container_status
-    container_status=$(ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps --format 'table {{.Name}}\t{{.Status}}'") || {
+    container_status=$(ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps --format 'table {{.Name}}\t{{.Status}}'") || {
         log_error "Failed to get container status"
         return 1
     }
@@ -333,7 +340,7 @@ run_health_checks() {
 
     # Check for any exited containers
     local exited_count
-    exited_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps -a | grep -c 'exited' || true")
+    exited_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps -a | grep -c 'exited' || true")
     if [[ "$exited_count" -gt 0 ]]; then
         log_error "Some containers have exited. Check logs with: ssh $remote_host 'cd $DEPLOY_PATH && docker compose logs'"
         return 1
@@ -344,7 +351,7 @@ run_health_checks() {
     local healthy=false
     for i in $(seq 1 $max_retries); do
         local unhealthy_count
-        unhealthy_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps | grep -E '(unhealthy|starting)' | wc -l || true")
+        unhealthy_count=$(ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps | grep -E '(unhealthy|starting)' | wc -l || true")
 
         if [[ "$unhealthy_count" -eq 0 ]]; then
             healthy=true
@@ -363,11 +370,11 @@ run_health_checks() {
 
     # Show final status
     log_info "All containers healthy!"
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose ps"
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose ps"
 
     # Show recent logs
     log_info "Recent logs (last 10 lines per service):"
-    ssh -o ConnectTimeout=10 "$remote_host" "cd $DEPLOY_PATH && docker compose logs --tail=10"
+    ssh -o ConnectTimeout=10 "$remote_host" "cd \"$DEPLOY_PATH\" && docker compose logs --tail=10"
 }
 
 save_deployment_info() {
@@ -383,7 +390,7 @@ save_deployment_info() {
     fi
 
     # Save deployment metadata on VPS
-    ssh -o ConnectTimeout=10 "$remote_host" "cat > $DEPLOY_PATH/.last_deploy <<EOF
+    ssh -o ConnectTimeout=10 "$remote_host" "cat > \"$DEPLOY_PATH/.last_deploy\" <<EOF
 TIMESTAMP=$timestamp
 ENVIRONMENT=$ENVIRONMENT
 IMAGE_TAG=$IMAGE_TAG
