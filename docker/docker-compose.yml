@@ -53,6 +53,9 @@ services:
       - AWS_REGION=${AWS_REGION:-eu-central-1}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:?S3_BUCKET_NAME is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      # Stripe Payment Gateway
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
       - SERVER_PORT=8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
