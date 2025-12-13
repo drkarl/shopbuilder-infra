@@ -38,12 +38,31 @@ locals {
 }
 
 # Add module calls here as infrastructure grows
-# Example:
+# Example VPS deployment:
 # module "vps" {
-#   source       = "../../modules/vps"
-#   name         = "${var.project_name}-${local.environment}"
-#   environment  = local.environment
+#   source = "../../modules/vps"
+#
+#   name          = "${var.project_name}-${local.environment}"
+#   environment   = local.environment
+#   provider_type = "scaleway"
+#
 #   instance_type = var.vps_instance_type
-#   region       = var.scaleway_region
-#   tags         = local.common_tags
+#   region        = var.scaleway_region
+#   zone          = var.scaleway_zone
+#   image         = "ubuntu_jammy"
+#
+#   ssh_public_key = var.ssh_public_key
+#   ssh_user       = "root"
+#
+#   # Restrict SSH to specific IPs in production
+#   ssh_allowed_ips = []
+#
+#   # HTTP/HTTPS only from Cloudflare
+#   enable_cloudflare_only = true
+#
+#   # Docker installation
+#   install_docker         = true
+#   install_docker_compose = true
+#
+#   tags = local.common_tags
 # }
