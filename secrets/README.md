@@ -18,3 +18,11 @@ See [docs/secrets-management.md](../docs/secrets-management.md) for complete doc
 - Generating age keys
 - Encrypting and decrypting secrets
 - Key management procedures
+
+## CI/CD Integration
+
+See [docs/woodpecker-secrets.md](../docs/woodpecker-secrets.md) for:
+- Configuring secrets in Woodpecker CI
+- Secret scope (global vs repository)
+- Pipeline secret injection
+- Secret rotation procedures
