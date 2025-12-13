@@ -1,0 +1,109 @@
+name: Deploy Hugo Marketing Site
+
+on:
+  # Trigger on pushes to the marketing site repository
+  # This workflow should be copied to the Hugo site repository
+  # or called via repository_dispatch from the marketing site repo
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      hugo_version:
+        description: 'Hugo version to use'
+        required: false
+        default: '0.139.0'
+        type: string
+
+  # Can also be triggered via repository dispatch from marketing site repo
+  repository_dispatch:
+    types: [deploy-marketing-site]
+
+env:
+  HUGO_VERSION: ${{ inputs.hugo_version || '0.139.0' }}
+  PAGES_PROJECT_NAME: 'staticshop-marketing'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout marketing site repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # If using repository_dispatch, specify the marketing site repo
+          repository: ${{ github.event.client_payload.repository || github.repository }}
+          ref: ${{ github.event.client_payload.ref || github.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@75d2e84710de30f6ff7268e08f310b60ef14033f # v3.0.0
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '20'
+
+      - name: Cache Hugo modules
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: |
+            ~/.cache/hugo_cache
+            /tmp/hugo_cache
+          key: ${{ runner.os }}-hugo-${{ hashFiles('**/go.sum', '**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-hugo-
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          fi
+
+      - name: Build Hugo site
+        env:
+          HUGO_ENV: ${{ inputs.environment || 'production' }}
+        run: |
+          hugo --minify --gc --destination public
+
+      - name: Verify build output
+        run: |
+          if [ ! -f public/index.html ]; then
+            echo "Error: index.html not found in public/"
+            exit 1
+          fi
+          echo "Build successful: $(find public -type f | wc -l) files generated"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@c7b07f8ca10a5201b61c8b6a63a3d63885f4d591 # v3.13.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public/ --project-name=${{ env.PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-hash=${{ github.sha }}
+
+      - name: Post deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ env.PAGES_PROJECT_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### URLs" >> $GITHUB_STEP_SUMMARY
+          echo "- Pages URL: https://${{ env.PAGES_PROJECT_NAME }}.pages.dev" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "- Production URL: https://staticshop.io" >> $GITHUB_STEP_SUMMARY
+          fi
