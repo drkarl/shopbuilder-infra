@@ -99,8 +99,8 @@ Via Terraform (create a new branch from a point in time):
 resource "neon_branch" "restore" {
   project_id = neon_project.this.id
   parent_id  = neon_project.this.default_branch_id
-  name       = "restore-2024-01-15"
-  parent_timestamp = "2024-01-15T10:30:00Z"
+  name       = "restore-2025-12-13"
+  parent_timestamp = "2025-12-13T10:30:00Z"
 }
 ```
 

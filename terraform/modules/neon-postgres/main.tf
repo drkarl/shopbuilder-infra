@@ -22,6 +22,13 @@ resource "neon_project" "this" {
   region_id = var.region_id
   org_id    = var.org_id
 
+  lifecycle {
+    precondition {
+      condition     = var.autoscaling_min_cu <= var.autoscaling_max_cu
+      error_message = "autoscaling_min_cu (${var.autoscaling_min_cu}) must be less than or equal to autoscaling_max_cu (${var.autoscaling_max_cu})."
+    }
+  }
+
   pg_version                 = var.pg_version
   history_retention_seconds  = var.history_retention_seconds
   store_password             = "yes"
