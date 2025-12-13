@@ -47,9 +47,11 @@ variable "api_record" {
 
   validation {
     condition = var.api_record == null || (
-      var.api_record.type == "A" ? can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.api_record.value)) : true
+      var.api_record.type == "A" ? can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$", var.api_record.value)) :
+      var.api_record.type == "AAAA" ? can(regex("^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$", var.api_record.value)) :
+      true
     )
-    error_message = "API record value must be a valid IPv4 address when type is 'A'."
+    error_message = "API record value must be a valid IPv4 address when type is 'A', or a valid IPv6 address when type is 'AAAA'."
   }
 
   validation {
@@ -151,9 +153,9 @@ variable "custom_records" {
 
   validation {
     condition = alltrue([
-      for record in var.custom_records : record.type != "MX" || record.priority != null
+      for record in var.custom_records : !(record.type == "MX" || record.type == "SRV") || record.priority != null
     ])
-    error_message = "MX records must have a priority value set."
+    error_message = "MX and SRV records must have a priority value set."
   }
 }
 
