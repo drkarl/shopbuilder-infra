@@ -1,0 +1,48 @@
+# CI Environment - Example Variables
+# Copy to terraform.tfvars and customize
+
+project_name = "shopbuilder"
+runner_name  = "github-runner-1"
+
+# Server specs (see docs/design/github-actions-self-hosted-runner-evaluation.md)
+server_type = "cpx32"  # 4 vCPU, 8GB RAM, 160GB NVMe - €10.99/mo
+# server_type = "cpx42"  # 8 vCPU, 16GB RAM, 320GB NVMe - €19.99/mo (for Docker builds)
+# server_type = "ccx23"  # 4 dedicated vCPU, 16GB RAM - €24.49/mo (consistent performance)
+
+location = "nbg1"  # Nuremberg, Germany (or hel1 for Helsinki)
+
+# SSH - get from: cat ~/.ssh/hetzner_id_ed25519.pub
+ssh_public_key = "ssh-ed25519 AAAA... your-key-here"
+ssh_key_name   = "drkarl-desktop"
+
+# Optional: restrict SSH to your IP only
+# ssh_allowed_ips = ["YOUR.IP.ADDRESS/32"]
+
+# Runner configuration
+runner_user = "runner"
+runner_labels = ["self-hosted", "linux", "x64", "hetzner", "builder"]
+
+# Java version for Gradle builds
+java_version = 25
+
+# Install Docker for building images
+install_docker = true
+
+#------------------------------------------------------------------------------
+# GitHub Auto-Registration (Optional)
+#------------------------------------------------------------------------------
+# Set auto_register_runner = true to automatically register the runner.
+# This requires a GitHub PAT with 'repo' scope.
+#
+# Option 1: Manual registration (default)
+#   - After terraform apply, SSH in and run: ./install-runner.sh <TOKEN>
+#   - Get token from: https://github.com/<owner>/<repo>/settings/actions/runners/new
+#
+# Option 2: Automatic registration
+#   - Set the variables below
+#   - Runner will be registered automatically on first boot
+
+auto_register_runner = false
+# github_token      = "ghp_xxxxxxxxxxxx"  # PAT with 'repo' scope
+# github_owner      = "drkarl"
+# github_repository = "shop-builder"
