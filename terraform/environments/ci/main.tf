@@ -33,7 +33,7 @@ module "github_runner" {
   source = "../../modules/hetzner-github-runner"
 
   name        = var.runner_name
-  server_type = var.server_type
+  server_type = local.effective_server_type
   location    = var.location
   image       = var.image
 
@@ -44,8 +44,8 @@ module "github_runner" {
   runner_labels = var.runner_labels
 
   # Security
-  ssh_port        = var.ssh_port
-  ssh_allowed_ips = var.ssh_allowed_ips
+  ssh_port          = var.ssh_port
+  ssh_allowed_ips   = var.ssh_allowed_ips
   fail2ban_maxretry = var.fail2ban_maxretry
   fail2ban_bantime  = var.fail2ban_bantime
 

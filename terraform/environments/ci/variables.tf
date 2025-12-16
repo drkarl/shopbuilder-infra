@@ -1,4 +1,16 @@
 # CI Environment Variables
+#
+# EPHEMERAL RUNNER STRATEGY
+# =========================
+# This infrastructure is designed for ephemeral runners: create when needed,
+# destroy when idle. Hetzner bills by the hour (rounded up), so keeping a
+# server running 24/7 costs the same as using it intensively for a few hours
+# per hour. But DESTROYING the server stops billing completely.
+#
+# Workflow:
+#   1. terraform apply   - Create runner (~2-3 min)
+#   2. Run CI jobs
+#   3. terraform destroy - Delete server (stops billing)
 
 variable "project_name" {
   description = "Project name"
@@ -16,16 +28,42 @@ variable "runner_name" {
   default     = "github-runner-1"
 }
 
-variable "server_type" {
-  description = "Hetzner server type"
+variable "server_size" {
+  description = <<-EOT
+    Server size preset for the runner:
+    - "small"  = cpx32 (4 vCPU, 8GB RAM)  - €0.015/hr, good for single jobs
+    - "burst"  = cpx42 (8 vCPU, 16GB RAM) - €0.028/hr, good for parallel jobs/Docker builds
+    - "custom" = use server_type variable directly
+  EOT
   type        = string
-  default     = "cpx32"  # 4 vCPU, 8GB RAM, 160GB NVMe
+  default     = "small"
+
+  validation {
+    condition     = contains(["small", "burst", "custom"], var.server_size)
+    error_message = "Server size must be one of: small, burst, custom."
+  }
+}
+
+variable "server_type" {
+  description = "Hetzner server type (only used when server_size = 'custom')"
+  type        = string
+  default     = "cpx32"
+}
+
+locals {
+  # Map size presets to actual Hetzner server types
+  server_type_map = {
+    small  = "cpx32" # 4 vCPU shared, 8GB RAM, 160GB NVMe - €0.015/hr
+    burst  = "cpx42" # 8 vCPU shared, 16GB RAM, 320GB NVMe - €0.028/hr
+    custom = var.server_type
+  }
+  effective_server_type = local.server_type_map[var.server_size]
 }
 
 variable "location" {
   description = "Hetzner datacenter location"
   type        = string
-  default     = "nbg1"  # Nuremberg, Germany
+  default     = "nbg1" # Nuremberg, Germany
 }
 
 variable "image" {
