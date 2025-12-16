@@ -62,3 +62,6 @@ logs/
 # Python virtual environments
 .venv/
 venv/
+
+.task-prompt.md
+.worktrees/
