@@ -50,6 +50,12 @@ variable "server_type" {
   default     = "cpx32"
 }
 
+variable "runner_count" {
+  description = "Number of runners to install (0 = auto based on server_size: 1 for small, 2 for burst)"
+  type        = number
+  default     = 0
+}
+
 locals {
   # Map size presets to actual Hetzner server types
   server_type_map = {
@@ -58,6 +64,14 @@ locals {
     custom = var.server_type
   }
   effective_server_type = local.server_type_map[var.server_size]
+
+  # Auto-calculate runner count: 1 for small, 2 for burst (or use explicit value)
+  runner_count_map = {
+    small  = 1
+    burst  = 2
+    custom = 1
+  }
+  effective_runner_count = var.runner_count > 0 ? var.runner_count : local.runner_count_map[var.server_size]
 }
 
 variable "location" {
@@ -152,6 +166,18 @@ variable "java_version" {
   description = "Java version (17, 21, 25)"
   type        = number
   default     = 25
+}
+
+variable "install_nodejs" {
+  description = "Install Node.js (for UI/frontend builds)"
+  type        = bool
+  default     = true
+}
+
+variable "nodejs_version" {
+  description = "Node.js major version (20, 22)"
+  type        = number
+  default     = 22
 }
 
 variable "extra_packages" {

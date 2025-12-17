@@ -130,13 +130,25 @@ variable "java_version" {
 variable "install_gradle" {
   description = "Install Gradle on the runner"
   type        = bool
-  default     = false  # Usually Gradle wrapper is used
+  default     = false # Usually Gradle wrapper is used
+}
+
+variable "install_nodejs" {
+  description = "Install Node.js on the runner (for UI/frontend builds)"
+  type        = bool
+  default     = false
+}
+
+variable "nodejs_version" {
+  description = "Node.js major version to install (20, 22)"
+  type        = number
+  default     = 22
 }
 
 variable "extra_packages" {
   description = "Additional apt packages to install"
   type        = list(string)
-  default     = [
+  default = [
     "htop",
     "ncdu",
     "tmux",
@@ -162,7 +174,7 @@ variable "enable_cleanup_timer" {
 variable "cleanup_docker_after_hours" {
   description = "Clean Docker resources older than this many hours"
   type        = number
-  default     = 168  # 7 days
+  default     = 168 # 7 days
 }
 
 variable "cleanup_workspace_after_days" {
@@ -204,6 +216,17 @@ variable "runner_name" {
   description = "Name for the GitHub runner (defaults to server name)"
   type        = string
   default     = ""
+}
+
+variable "runner_count" {
+  description = "Number of runner instances to install on this server (for parallel jobs)"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.runner_count >= 1 && var.runner_count <= 4
+    error_message = "Runner count must be between 1 and 4."
+  }
 }
 
 variable "runner_group" {

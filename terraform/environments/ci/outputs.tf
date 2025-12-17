@@ -26,6 +26,11 @@ output "server_size" {
   value       = var.server_size
 }
 
+output "runner_count" {
+  description = "Number of runner instances on this server"
+  value       = local.effective_runner_count
+}
+
 output "ssh_command" {
   description = "SSH command to connect"
   value       = module.github_runner.ssh_command

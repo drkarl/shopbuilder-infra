@@ -197,6 +197,18 @@ runcmd:
   - apt-get install -y temurin-${java_version}-jdk
 %{ endif ~}
 
+%{ if install_nodejs ~}
+  # Install Node.js ${nodejs_version}
+  - curl -fsSL https://deb.nodesource.com/setup_${nodejs_version}.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g npm@latest
+  - npm install -g pnpm
+  # Verify installation
+  - node --version
+  - npm --version
+  - pnpm --version
+%{ endif ~}
+
 %{ if install_docker ~}
   # Install Docker
   - curl -fsSL https://get.docker.com | sh
@@ -209,40 +221,59 @@ runcmd:
   - chown -R ${runner_user}:${runner_user} /home/${runner_user}
 
 %{ if auto_register_runner ~}
-  # Auto-register GitHub Actions runner
+  # Auto-register GitHub Actions runner(s)
   - |
     set -e
-    echo "Auto-registering GitHub Actions runner..."
-    cd /home/${runner_user}
-
-    # Download runner
     RUNNER_VERSION="2.321.0"
-    mkdir -p actions-runner
-    cd actions-runner
+    RUNNER_COUNT=${runner_count}
+
+    echo "Auto-registering $RUNNER_COUNT GitHub Actions runner(s)..."
+
+    # Download runner package once
+    cd /home/${runner_user}
     curl -sL -o actions-runner-linux-x64-$RUNNER_VERSION.tar.gz \
       https://github.com/actions/runner/releases/download/v$RUNNER_VERSION/actions-runner-linux-x64-$RUNNER_VERSION.tar.gz
-    tar xzf actions-runner-linux-x64-$RUNNER_VERSION.tar.gz
-    rm actions-runner-linux-x64-$RUNNER_VERSION.tar.gz
-    chown -R ${runner_user}:${runner_user} /home/${runner_user}/actions-runner
 
-    # Configure runner as the runner user
-    sudo -u ${runner_user} ./config.sh \
-      --url "${github_repo_url}" \
-      --token "${runner_token}" \
-      --name "${runner_name}" \
-      --labels "${runner_labels}" \
-      --unattended \
-      --replace
+    for i in $(seq 1 $RUNNER_COUNT); do
+      RUNNER_DIR="actions-runner-$i"
+      RUNNER_NAME="${runner_name}-$i"
 
-    # Install and start as service
-    ./svc.sh install ${runner_user}
-    ./svc.sh start
+      echo "Setting up runner $i: $RUNNER_NAME"
 
-    echo "GitHub Actions runner '${runner_name}' registered and started!"
+      # Create and extract runner
+      mkdir -p "$RUNNER_DIR"
+      tar xzf actions-runner-linux-x64-$RUNNER_VERSION.tar.gz -C "$RUNNER_DIR"
+      chown -R ${runner_user}:${runner_user} "/home/${runner_user}/$RUNNER_DIR"
+
+      # Configure runner
+      cd "/home/${runner_user}/$RUNNER_DIR"
+      sudo -u ${runner_user} ./config.sh \
+        --url "${github_repo_url}" \
+        --token "${runner_token}" \
+        --name "$RUNNER_NAME" \
+        --labels "${runner_labels}" \
+        --unattended \
+        --replace
+
+      # Install and start as service
+      ./svc.sh install ${runner_user}
+      ./svc.sh start
+
+      echo "Runner '$RUNNER_NAME' registered and started!"
+      cd /home/${runner_user}
+    done
+
+    # Cleanup downloaded archive
+    rm -f actions-runner-linux-x64-$RUNNER_VERSION.tar.gz
+
+    # Create symlink for backwards compatibility (points to runner 1)
+    ln -sf actions-runner-1 /home/${runner_user}/actions-runner
+
+    echo "All $RUNNER_COUNT runner(s) registered and started!"
 %{ endif ~}
 
 %{ if auto_register_runner ~}
-final_message: "GitHub runner '${runner_name}' ready and registered after $UPTIME seconds."
+final_message: "GitHub runner(s) ready and registered after $UPTIME seconds. Runners: ${runner_count}"
 %{ else ~}
 final_message: "GitHub runner server ready after $UPTIME seconds. SSH as ${runner_user} and run ./install-runner.sh with your token."
 %{ endif ~}

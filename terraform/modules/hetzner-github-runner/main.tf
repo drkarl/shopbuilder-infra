@@ -44,17 +44,33 @@ locals {
   # Runner name (default to server name)
   effective_runner_name = var.runner_name != "" ? var.runner_name : var.name
 
-  # GitHub repo URL for runner config
-  github_repo_url = var.github_owner != "" && var.github_repository != "" ? "https://github.com/${var.github_owner}/${var.github_repository}" : ""
+  # Determine if this is org-level or repo-level registration
+  is_org_level = var.github_repository == ""
+
+  # GitHub URL for runner config (org or repo)
+  github_repo_url = local.is_org_level ? "https://github.com/${var.github_owner}" : "https://github.com/${var.github_owner}/${var.github_repository}"
+
+  # Get the appropriate token (org or repo level)
+  runner_token = var.auto_register_runner ? (
+    local.is_org_level
+    ? data.github_actions_organization_registration_token.runner[0].token
+    : data.github_actions_registration_token.runner[0].token
+  ) : ""
 }
 
 #------------------------------------------------------------------------------
 # GitHub Runner Registration Token (optional)
 #------------------------------------------------------------------------------
 
+# Repo-level registration (when github_repository is set)
 data "github_actions_registration_token" "runner" {
-  count      = var.auto_register_runner ? 1 : 0
+  count      = var.auto_register_runner && var.github_repository != "" ? 1 : 0
   repository = var.github_repository
+}
+
+# Org-level registration (when github_repository is empty)
+data "github_actions_organization_registration_token" "runner" {
+  count = var.auto_register_runner && var.github_repository == "" ? 1 : 0
 }
 
 #------------------------------------------------------------------------------
@@ -133,6 +149,8 @@ resource "hcloud_server" "runner" {
     runner_labels                = local.runner_labels_str
     install_java                 = var.install_java
     java_version                 = var.java_version
+    install_nodejs               = var.install_nodejs
+    nodejs_version               = var.nodejs_version
     install_docker               = var.install_docker
     enable_cleanup_timer         = var.enable_cleanup_timer
     cleanup_docker_after_hours   = var.cleanup_docker_after_hours
@@ -140,9 +158,10 @@ resource "hcloud_server" "runner" {
     extra_packages               = var.extra_packages
     # Auto-registration variables
     auto_register_runner = var.auto_register_runner
-    runner_token         = var.auto_register_runner ? data.github_actions_registration_token.runner[0].token : ""
+    runner_token         = local.runner_token
     github_repo_url      = local.github_repo_url
     runner_name          = local.effective_runner_name
+    runner_count         = var.runner_count
   })
 
   labels = local.common_labels

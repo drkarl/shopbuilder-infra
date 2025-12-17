@@ -53,7 +53,12 @@ module "github_runner" {
   install_docker = var.install_docker
   install_java   = var.install_java
   java_version   = var.java_version
+  install_nodejs = var.install_nodejs
+  nodejs_version = var.nodejs_version
   extra_packages = var.extra_packages
+
+  # Runner count (auto: 1 for small, 2 for burst)
+  runner_count = local.effective_runner_count
 
   # Cleanup
   enable_cleanup_timer         = var.enable_cleanup_timer
